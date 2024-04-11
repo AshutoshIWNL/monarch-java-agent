@@ -2,6 +2,7 @@ package com.asm.mja.transformer;
 
 import com.asm.mja.config.Config;
 import com.asm.mja.logging.AgentLogger;
+import com.asm.mja.logging.TraceFileLogger;
 import com.asm.mja.utils.ClassLoaderTracer;
 
 import java.lang.instrument.ClassFileTransformer;
@@ -21,15 +22,17 @@ public class GlobalTransformer implements ClassFileTransformer {
     String configFile;
     Config config;
 
+    TraceFileLogger logger;
     /**
      * Constructs a GlobalTransformer with the specified configuration.
      *
      * @param configFile The path to the configuration file.
      * @param config     The configuration object.
      */
-    public GlobalTransformer(String configFile, Config config) {
+    public GlobalTransformer(String configFile, Config config, TraceFileLogger logger) {
         this.configFile = configFile;
         this.config = config;
+        this.logger = logger;
     }
 
     /**
@@ -45,10 +48,10 @@ public class GlobalTransformer implements ClassFileTransformer {
      */
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
                             ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
-
         if(config.isPrintClassLoaderTrace()) {
-            AgentLogger.debug(ClassLoaderTracer.printClassInfo(className, loader, protectionDomain));
+            logger.trace(ClassLoaderTracer.printClassInfo(className, loader, protectionDomain));
         }
         return classfileBuffer;
     }
+
 }

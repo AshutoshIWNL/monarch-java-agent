@@ -5,8 +5,11 @@ import com.asm.mja.config.ConfigParser;
 import com.asm.mja.config.ConfigValidator;
 import com.asm.mja.logging.AgentLogger;
 import com.asm.mja.logging.LogLevel;
+import com.asm.mja.logging.TraceFileLogger;
 import com.asm.mja.transformer.GlobalTransformer;
 import com.asm.mja.utils.BannerUtils;
+import com.asm.mja.utils.DateUtils;
+import com.asm.mja.utils.JVMUtils;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
@@ -76,9 +79,25 @@ public class Agent {
             return;
         }
 
-        GlobalTransformer globalTransformer = new GlobalTransformer(configFile, config);
+        AgentLogger.debug("Creating TraceFileLogger instance for instrumentation logging");
+        TraceFileLogger traceFileLogger = new TraceFileLogger(config.getTraceFileLocation());
+
+        traceFileLogger.trace(AGENT_NAME + " Java Agent " + VERSION);
+        traceFileLogger.trace(JVMUtils.getJVMCommandLine());
+
+        if(config.isPrintJVMSystemProperties()) {
+            traceFileLogger.trace(JVMUtils.getJVMSystemProperties());
+        }
+
+        GlobalTransformer globalTransformer = new GlobalTransformer(configFile, config, traceFileLogger);
         inst.addTransformer(globalTransformer);
         AgentLogger.info("Registered transformer - " + GlobalTransformer.class);
+
+        AgentLogger.debug("Setting up shutdown hook to close TraceFileLogger");
+        Thread shutdownHook = new Thread(traceFileLogger::close);
+        shutdownHook.setName("monarch-shutdown-hook");
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
+
         AgentLogger.deinit();
     }
 
@@ -222,7 +241,7 @@ public class Agent {
      */
     public static void printStartup(String agentArgs) {
         AgentLogger.draw(BannerUtils.getBanner(AGENT_NAME + " JAVA AGENT"));
-        AgentLogger.info("Starting " + AGENT_NAME + " " + VERSION);
+        AgentLogger.info("Starting " + AGENT_NAME + " " + VERSION + " @ " + DateUtils.getFormattedTimestamp());
         AgentLogger.info("Agent arguments - " + agentArgs);
     }
 }
