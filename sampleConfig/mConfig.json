@@ -1,7 +1,8 @@
 {
   "traceFileLocation": "C:\\Users\\ashut\\Documents\\Personal Projects",
   "agentFilters": [
-    "test_4c4dc7d5a170"
+    "com.example.asm.ClassA::methodA@ENTRY::STACK",
+    "com.example.asm.ClassA::methodA@ENTRY::ADD{ Thread.sleep(10000l); }"
   ],
   "printClassLoaderTrace": true,
   "printJVMHeapUsage": true,

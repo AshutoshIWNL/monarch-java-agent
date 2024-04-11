@@ -53,7 +53,7 @@ public class ClassLoaderTracer {
      */
     public static String printLoadedFrom(ProtectionDomain protectionDomain) {
         CodeSource codeSource = protectionDomain.getCodeSource();
-        String loadedFrom = "Loader from: ";
+        String loadedFrom = "Loaded from: ";
         if (codeSource != null) {
             URL location = codeSource.getLocation();
             loadedFrom += location.getPath();
