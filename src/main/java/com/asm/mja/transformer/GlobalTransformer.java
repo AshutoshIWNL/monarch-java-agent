@@ -9,20 +9,40 @@ import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
 
 /**
+ * The GlobalTransformer class implements the ClassFileTransformer interface
+ * to perform bytecode transformation on loaded classes.
+ * It is responsible for applying transformations based on the provided configuration.
+ *
  * @author ashut
  * @since 11-04-2024
  */
-
 public class GlobalTransformer implements ClassFileTransformer {
 
     String configFile;
     Config config;
 
+    /**
+     * Constructs a GlobalTransformer with the specified configuration.
+     *
+     * @param configFile The path to the configuration file.
+     * @param config     The configuration object.
+     */
     public GlobalTransformer(String configFile, Config config) {
         this.configFile = configFile;
         this.config = config;
     }
 
+    /**
+     * Transforms the bytecode of a loaded class.
+     *
+     * @param loader              The classloader loading the class.
+     * @param className           The name of the class being transformed.
+     * @param classBeingRedefined The class being redefined, if applicable.
+     * @param protectionDomain    The protection domain of the class.
+     * @param classfileBuffer     The bytecode of the class.
+     * @return The transformed bytecode.
+     * @throws IllegalClassFormatException If the class file format is illegal or unsupported.
+     */
     public byte[] transform(ClassLoader loader, String className, Class<?> classBeingRedefined,
                             ProtectionDomain protectionDomain, byte[] classfileBuffer) throws IllegalClassFormatException {
 

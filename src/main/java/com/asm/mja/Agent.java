@@ -12,10 +12,10 @@ import java.io.File;
 import java.lang.instrument.Instrumentation;
 
 /**
+ * Monarch's Entry Class
  * @author ashut
  * @since 11-04-2024
  */
-
 public class Agent {
 
     private final static String AGENT_NAME = "Monarch";
@@ -23,16 +23,35 @@ public class Agent {
     private final static String DEFAULT_LOG_LEVEL = "INFO";
     private final static String DEFAULT_AGENT_LOG_DIR = System.getProperty("java.io.tmpdir");
 
+    /**
+     * Entry point for premain. Sets up the logger and starts instrumenting.
+     *
+     * @param agentArgs  The agent arguments passed to the JVM.
+     * @param inst       The instrumentation instance.
+     */
     public static void premain(String agentArgs, Instrumentation inst) {
         setupLogger(agentArgs);
         instrument(agentArgs, inst, "javaagent");
     }
 
+    /**
+     * Entry point for agentmain. Sets up the logger and starts instrumenting.
+     *
+     * @param agentArgs  The agent arguments passed to the JVM.
+     * @param inst       The instrumentation instance.
+     */
     public static void agentmain(String agentArgs, Instrumentation inst) {
         setupLogger(agentArgs);
         instrument(agentArgs, inst, "attachVM");
     }
 
+    /**
+     * Instruments the application with the specified configuration.
+     *
+     * @param agentArgs  The agent arguments passed to the JVM.
+     * @param inst       The instrumentation instance.
+     * @param launchType The type of launch: 'javaagent' or 'attachVM'.
+     */
     private static void instrument(String agentArgs, Instrumentation inst, String launchType) {
         printStartup(agentArgs);
 
@@ -63,6 +82,11 @@ public class Agent {
         AgentLogger.deinit();
     }
 
+    /**
+     * Sets up the logger based on the provided agent arguments.
+     *
+     * @param agentArgs  The agent arguments passed to the JVM.
+     */
     private static void setupLogger(String agentArgs) {
         String agentLogFileDir = null;
         try {
@@ -86,9 +110,15 @@ public class Agent {
             agentLogLevel = DEFAULT_LOG_LEVEL;
         }
         AgentLogger.init(agentLogFile, LogLevel.valueOf(agentLogLevel));
-        AgentLogger.debug("AgentLogger initialized");
     }
 
+    /**
+     * Fetches the configuration file path from the agent arguments.
+     *
+     * @param agentArgs  The agent arguments passed to the JVM.
+     * @return The configuration file path.
+     * @throws IllegalArgumentException If the configuration file path is invalid.
+     */
     private static String fetchConfigFile(String agentArgs) {
         AgentLogger.debug("Fetching config file to build the agent config");
         String configFile = null;
@@ -113,6 +143,13 @@ public class Agent {
         return configFile;
     }
 
+    /**
+     * Fetches the agent log file directory from the agent arguments.
+     *
+     * @param agentArgs  The agent arguments passed to the JVM.
+     * @return The agent log file directory.
+     * @throws IllegalArgumentException If the agent log file directory is invalid.
+     */
     private static String fetchAgentLogFileDir(String agentArgs) throws IllegalArgumentException {
         String agentLogFileDir = null;
         if (agentArgs != null) {
@@ -135,6 +172,13 @@ public class Agent {
         return agentLogFileDir;
     }
 
+    /**
+     * Fetches the agent log level from the agent arguments.
+     *
+     * @param agentArgs  The agent arguments passed to the JVM.
+     * @return The agent log level.
+     * @throws IllegalArgumentException If the agent log level is invalid.
+     */
     private static String fetchAgentLogLevel(String agentArgs) throws IllegalArgumentException {
         String agentLogLevel = null;
         if (agentArgs != null) {
@@ -156,6 +200,12 @@ public class Agent {
         return agentLogLevel;
     }
 
+    /**
+     * Checks if the specified log level is valid.
+     *
+     * @param input The log level to check.
+     * @return True if the log level is valid, otherwise false.
+     */
     public static boolean isValidLogLevel(String input) {
         for (LogLevel level : LogLevel.values()) {
             if (level.name().equals(input)) {
@@ -165,6 +215,11 @@ public class Agent {
         return false;
     }
 
+    /**
+     * Prints the startup information.
+     *
+     * @param agentArgs The agent arguments passed to the JVM.
+     */
     public static void printStartup(String agentArgs) {
         AgentLogger.draw(BannerUtils.getBanner(AGENT_NAME + " JAVA AGENT"));
         AgentLogger.info("Starting " + AGENT_NAME + " " + VERSION);
