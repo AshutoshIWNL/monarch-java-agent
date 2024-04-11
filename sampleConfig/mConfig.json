@@ -1,0 +1,9 @@
+{
+  "traceFileLocation": "C:\\Users\\ashut\\Documents\\Personal Projects",
+  "agentFilters": [
+    "test_4c4dc7d5a170"
+  ],
+  "printClassLoaderTrace": true,
+  "printJVMHeapUsage": true,
+  "printJVMSystemProperties": true
+}
