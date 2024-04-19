@@ -15,4 +15,9 @@ public class DateUtils {
         return dateFormat.format(new Date());
     }
 
+    public static String getFormattedTimestampForFileName() {
+        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
+        return dateFormat.format(new Date());
+    }
+
 }

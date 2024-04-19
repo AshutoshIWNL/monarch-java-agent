@@ -13,13 +13,14 @@ public class Config {
     private boolean printClassLoaderTrace;
     private boolean printJVMHeapUsage;
     private boolean printJVMSystemProperties;
+    private boolean printEnvironmentVariables;
 
     public String getTraceFileLocation() {
         return traceFileLocation;
     }
 
-    public void setTraceLocation(String traceLocation) {
-        this.traceFileLocation = traceLocation;
+    public void setTraceFileLocation(String traceFileLocation) {
+        this.traceFileLocation = traceFileLocation;
     }
 
     public List<String> getAgentFilters() {
@@ -54,14 +55,23 @@ public class Config {
         this.printJVMSystemProperties = printJVMSystemProperties;
     }
 
+    public boolean isPrintEnvironmentVariables() {
+        return printEnvironmentVariables;
+    }
+
+    public void setPrintEnvironmentVariables(boolean printEnvironmentVariables) {
+        this.printEnvironmentVariables = printEnvironmentVariables;
+    }
+
     @Override
     public String toString() {
         return "Config{" +
-                "traceLocation='" + traceFileLocation + '\'' +
+                "traceFileLocation='" + traceFileLocation + '\'' +
                 ", agentFilters=" + agentFilters +
                 ", printClassLoaderTrace=" + printClassLoaderTrace +
-                ", jvmHeapUsage='" + printJVMHeapUsage + '\'' +
+                ", printJVMHeapUsage=" + printJVMHeapUsage +
                 ", printJVMSystemProperties=" + printJVMSystemProperties +
+                ", printEnvironmentVariables=" + printEnvironmentVariables +
                 '}';
     }
 }

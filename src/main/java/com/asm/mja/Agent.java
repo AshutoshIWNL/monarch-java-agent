@@ -6,6 +6,7 @@ import com.asm.mja.config.ConfigValidator;
 import com.asm.mja.logging.AgentLogger;
 import com.asm.mja.logging.LogLevel;
 import com.asm.mja.logging.TraceFileLogger;
+import com.asm.mja.monitor.JVMMemoryMonitor;
 import com.asm.mja.transformer.GlobalTransformer;
 import com.asm.mja.utils.BannerUtils;
 import com.asm.mja.utils.DateUtils;
@@ -80,7 +81,9 @@ public class Agent {
         }
 
         AgentLogger.debug("Creating TraceFileLogger instance for instrumentation logging");
-        TraceFileLogger traceFileLogger = new TraceFileLogger(config.getTraceFileLocation());
+
+
+        TraceFileLogger traceFileLogger = setupTraceFileLogger(config.getTraceFileLocation());
 
         traceFileLogger.trace(AGENT_NAME + " Java Agent " + VERSION);
         traceFileLogger.trace(JVMUtils.getJVMCommandLine());
@@ -89,16 +92,50 @@ public class Agent {
             traceFileLogger.trace(JVMUtils.getJVMSystemProperties());
         }
 
+        if(config.isPrintEnvironmentVariables()) {
+            traceFileLogger.trace(JVMUtils.getEnvVars());
+        }
+
+        if(config.isPrintJVMHeapUsage()) {
+            startJVMMemoryMonitorThread(traceFileLogger);
+        }
+
         GlobalTransformer globalTransformer = new GlobalTransformer(configFile, config, traceFileLogger);
         inst.addTransformer(globalTransformer);
         AgentLogger.info("Registered transformer - " + GlobalTransformer.class);
 
-        AgentLogger.debug("Setting up shutdown hook to close TraceFileLogger");
-        Thread shutdownHook = new Thread(traceFileLogger::close);
+        AgentLogger.debug("Setting up shutdown hook to close resources");
+        Thread shutdownHook = new Thread(() -> {
+            JVMMemoryMonitor.getInstance().shutdown();
+            traceFileLogger.close();
+        });
         shutdownHook.setName("monarch-shutdown-hook");
         Runtime.getRuntime().addShutdownHook(shutdownHook);
 
+
         AgentLogger.deinit();
+    }
+
+    private static TraceFileLogger setupTraceFileLogger(String traceFileLocation) {
+        TraceFileLogger traceFileLogger = null;
+        String traceDir = traceFileLocation + File.separator + "monarch_" + JVMUtils.getJVMPID() + "_" + DateUtils.getFormattedTimestampForFileName();
+        File traceDirObj = new File(traceDir);
+        if(traceDirObj.mkdir())
+            traceFileLogger = new TraceFileLogger(traceDirObj.getAbsolutePath());
+        else
+            traceFileLogger = new TraceFileLogger(traceFileLocation);
+        return traceFileLogger;
+    }
+
+    /**
+     * Starts the JVM Memory Monitor thread
+     *
+     * @param traceFileLogger  The logger to be used by JVM Monitor
+     */
+    private static void startJVMMemoryMonitorThread(TraceFileLogger traceFileLogger) {
+        JVMMemoryMonitor jvmMemoryMonitor = JVMMemoryMonitor.getInstance();
+        jvmMemoryMonitor.setLogger(traceFileLogger);
+        jvmMemoryMonitor.execute();
     }
 
     /**

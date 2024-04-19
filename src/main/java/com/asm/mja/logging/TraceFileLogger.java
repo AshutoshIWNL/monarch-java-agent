@@ -1,14 +1,11 @@
 package com.asm.mja.logging;
 
 import com.asm.mja.utils.DateUtils;
-import com.asm.mja.utils.JVMUtils;
 
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
@@ -23,7 +20,7 @@ public class TraceFileLogger {
     private final Lock lock = new ReentrantLock();
 
     public TraceFileLogger(String location) {
-        fileName = location + File.separator + generateLogFileName() + ".out";
+        fileName = location + File.separator + generateLogFileName();
         try {
             writer = new PrintWriter(new FileWriter(fileName, true));
         } catch (IOException e) {
@@ -32,10 +29,7 @@ public class TraceFileLogger {
     }
 
     private String generateLogFileName() {
-        String fileName = "TraceFile_" + JVMUtils.getJVMPID() + "_";
-        SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMdd_HHmmss");
-        fileName += dateFormat.format(new Date());
-        return fileName;
+        return "agent.trace";
     }
 
     public void trace(String message) {

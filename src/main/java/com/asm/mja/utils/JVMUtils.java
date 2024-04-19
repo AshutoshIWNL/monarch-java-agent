@@ -2,6 +2,7 @@ package com.asm.mja.utils;
 
 import java.lang.management.ManagementFactory;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 /**
@@ -11,6 +12,18 @@ import java.util.Properties;
 
 public class JVMUtils {
     public static Integer JVMPID = null;
+
+    public static String getEnvVars() {
+        Map<String, String> envVariables = System.getenv();
+
+        StringBuilder stringBuilder = new StringBuilder();
+        stringBuilder.append("\n\n*******Environment Variables*******\n");
+        for (Map.Entry<String, String> entry : envVariables.entrySet()) {
+            stringBuilder.append(entry.getKey()).append(" = ").append(entry.getValue()).append(System.lineSeparator());
+        }
+        stringBuilder.append("***********************************\n");
+        return stringBuilder.toString();
+    }
 
     public static Integer getJVMPID() {
         if(JVMPID == null) {
