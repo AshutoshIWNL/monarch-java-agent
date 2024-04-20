@@ -1,8 +1,12 @@
 {
   "traceFileLocation": "C:\\Users\\ashut\\Documents\\Personal Projects\\manualTesting",
   "agentFilters": [
-    "com.example.asm.ClassA::methodA@ENTRY::STACK",
-    "com.example.asm.ClassA::methodA@ENTRY::ADD{ Thread.sleep(10000l); }"
+    "ClassA::getA@ENTRY::STACK",
+	"ClassA::getA@ENTRY::ARGS",
+	"ClassA::getAr@ENTRY::ARGS",
+	"ClassA::getAr@ENTRY::STACK",
+	"ClassA::getAr@EXIT::STACK",
+	"ClassA::getAr@EXIT::ARGS"
   ],
   "printClassLoaderTrace": true,
   "printJVMSystemProperties": true,
