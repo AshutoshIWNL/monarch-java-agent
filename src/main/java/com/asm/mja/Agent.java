@@ -3,6 +3,8 @@ package com.asm.mja;
 import com.asm.mja.config.Config;
 import com.asm.mja.config.ConfigParser;
 import com.asm.mja.config.ConfigValidator;
+import com.asm.mja.filter.Filter;
+import com.asm.mja.filter.FilterParser;
 import com.asm.mja.logging.AgentLogger;
 import com.asm.mja.logging.LogLevel;
 import com.asm.mja.logging.TraceFileLogger;
@@ -14,6 +16,7 @@ import com.asm.mja.utils.JVMUtils;
 
 import java.io.File;
 import java.lang.instrument.Instrumentation;
+import java.util.List;
 
 /**
  * Monarch's Entry Class
@@ -100,7 +103,8 @@ public class Agent {
             startJVMMemoryMonitorThread(traceFileLogger);
         }
 
-        GlobalTransformer globalTransformer = new GlobalTransformer(configFile, config, traceFileLogger);
+        List<Filter> filters = FilterParser.parseFilters(config.getAgentFilters());
+        GlobalTransformer globalTransformer = new GlobalTransformer(configFile, config, traceFileLogger, filters);
         inst.addTransformer(globalTransformer);
         AgentLogger.info("Registered transformer - " + GlobalTransformer.class);
 
@@ -118,12 +122,16 @@ public class Agent {
 
     private static TraceFileLogger setupTraceFileLogger(String traceFileLocation) {
         TraceFileLogger traceFileLogger = null;
-        String traceDir = traceFileLocation + File.separator + "monarch_" + JVMUtils.getJVMPID() + "_" + DateUtils.getFormattedTimestampForFileName();
+        String traceDir = traceFileLocation + File.separator + "Monarch_" + JVMUtils.getJVMPID() + "_" + DateUtils.getFormattedTimestampForFileName();
         File traceDirObj = new File(traceDir);
-        if(traceDirObj.mkdir())
-            traceFileLogger = new TraceFileLogger(traceDirObj.getAbsolutePath());
-        else
-            traceFileLogger = new TraceFileLogger(traceFileLocation);
+        if(traceDirObj.mkdir()) {
+            traceFileLogger = TraceFileLogger.getInstance();
+            traceFileLogger.init(traceDirObj.getAbsolutePath());
+        }
+        else {
+            traceFileLogger = TraceFileLogger.getInstance();
+            traceFileLogger.init(traceFileLocation);
+        }
         return traceFileLogger;
     }
 

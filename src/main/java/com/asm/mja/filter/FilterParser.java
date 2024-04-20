@@ -1,0 +1,44 @@
+package com.asm.mja.filter;
+
+import com.asm.mja.transformer.Action;
+import com.asm.mja.transformer.Event;
+
+import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
+
+/**
+ * @author ashut
+ * @since 20-04-2024
+ */
+
+public class FilterParser {
+    public static List<Filter> parseFilters(List<String> filters) {
+        return filters.stream()
+                    .map(filter -> {
+                        String[] parts = filter.split("::|@");
+
+                        String className = parts[0];
+                        String methodName = parts[1];
+                        String eventString = parts[2];
+                        Event event = null;
+                        int lineNumber = 0;
+                        if(eventString.startsWith("AT")) {
+                            event = Event.AT;
+                            Pattern pattern = Pattern.compile("\\((\\d+)\\)");
+                            Matcher matcher = pattern.matcher(eventString);
+                            if (matcher.find()) {
+                                lineNumber = Integer.parseInt(matcher.group(1));
+                            }
+                        } else {
+                            event = Event.valueOf(eventString);
+                        }
+                        Action action = Action.valueOf(parts[3]);
+
+                        return new Filter(className, methodName, event, action, lineNumber);
+                    })
+                    .collect(Collectors.toList());
+    }
+
+}

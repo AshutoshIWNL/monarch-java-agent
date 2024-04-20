@@ -40,7 +40,7 @@ public class JVMMemoryMonitor implements Runnable {
                 long used = memoryMXBean.getHeapMemoryUsage().getUsed() / (1024 * 1024);
                 long max = memoryMXBean.getHeapMemoryUsage().getMax() / (1024 * 1024);
                 long committed = memoryMXBean.getHeapMemoryUsage().getCommitted() / (1024 * 1024);
-                String memoryString = "[USED: " + used + "MB | COMMITTED: " + committed + "MB | MAX: " + max + "MB]";
+                String memoryString = "{USED: " + used + "MB | COMMITTED: " + committed + "MB | MAX: " + max + "MB}";
                 logger.trace(memoryString);
                 Thread.sleep(5000l);
             } catch (InterruptedException e) {
