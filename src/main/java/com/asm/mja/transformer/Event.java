@@ -8,5 +8,6 @@ package com.asm.mja.transformer;
 public enum Event {
     ENTRY,
     EXIT,
-    AT
+    AT,
+    PROFILE
 }

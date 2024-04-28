@@ -31,6 +31,9 @@ public class FilterParser {
                             if (matcher.find()) {
                                 lineNumber = Integer.parseInt(matcher.group(1));
                             }
+                        } else if(eventString.startsWith("PROFILE")) {
+                            event = Event.PROFILE;
+                            return new Filter(className, methodName, event, null, lineNumber);
                         } else {
                             event = Event.valueOf(eventString);
                         }

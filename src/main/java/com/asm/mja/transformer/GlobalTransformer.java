@@ -101,7 +101,37 @@ public class GlobalTransformer implements ClassFileTransformer {
                 break;
             case AT:
                 modifiedBytes = performAtAction(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes, filter.getLineNumber());
+                break;
+            case PROFILE:
+                modifiedBytes = performProfiling(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes, filter.getLineNumber());
         }
+        return modifiedBytes;
+    }
+
+    private byte[] performProfiling(String methodName, Action action, ClassLoader loader,
+                                    String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes, int lineNumber) throws IOException, CannotCompileException {
+        ClassPool pool = ClassPool.getDefault();
+        CtClass ctClass = pool.makeClass(new java.io.ByteArrayInputStream(modifiedBytes));
+        addLoggerField(ctClass);
+        for(CtMethod method : ctClass.getDeclaredMethods()) {
+            if(method.getName().equals(methodName)) {
+                // Declaring startTime as local variable to pass it to insertAfter (it won't work without this)
+                method.addLocalVariable("startTime", CtClass.longType);
+                method.insertBefore(" try { startTime = System.nanoTime(); } catch(Exception e){}");
+
+                method.insertAfter("try {" +
+                        "    long endTime = System.nanoTime();" +
+                        "    final long executionTime = (endTime - startTime) / 1000000;" +
+                        "    logger.trace(\"{" + formattedClassName + "." + methodName + "} | PROFILE | Execution time: \" + executionTime + \"ms\");" +
+                        "} catch (Exception e) { }");
+
+            }
+        }
+        // CtClass frozen - due to  writeFile()/toClass()/toBytecode()
+        modifiedBytes = ctClass.toBytecode();
+
+        // To remove from ClassPool
+        ctClass.detach();
         return modifiedBytes;
     }
 
@@ -145,7 +175,8 @@ public class GlobalTransformer implements ClassFileTransformer {
         return modifiedBytes;
     }
 
-    private byte[] getArgs(String methodName, Event event, ClassLoader loader, String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes) throws IOException, CannotCompileException, UnsupportedActionException {
+    private byte[] getArgs(String methodName, Event event, ClassLoader loader, String formattedClassName,
+                           Class<?> classBeingRedefined, byte[] modifiedBytes) throws IOException, CannotCompileException, UnsupportedActionException {
         ClassPool pool = ClassPool.getDefault();
         CtClass ctClass = pool.makeClass(new java.io.ByteArrayInputStream(modifiedBytes));
         addLoggerField(ctClass);
@@ -229,7 +260,8 @@ public class GlobalTransformer implements ClassFileTransformer {
         $_ gives the return value
         $r gives the return type
      */
-    private byte[] getReturnValue(String methodName, Event event, ClassLoader loader, String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes) throws IOException, CannotCompileException, UnsupportedActionException {
+    private byte[] getReturnValue(String methodName, Event event, ClassLoader loader,
+                                  String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes) throws IOException, CannotCompileException, UnsupportedActionException {
         ClassPool pool = ClassPool.getDefault();
         CtClass ctClass = pool.makeClass(new java.io.ByteArrayInputStream(modifiedBytes));
         addLoggerField(ctClass);
@@ -300,7 +332,26 @@ public class GlobalTransformer implements ClassFileTransformer {
             // logger field isn't found
         }
 
-        CtField loggerField = CtField.make("private com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance();", ctClass);
+        CtField loggerField = CtField.make("private static final com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance();", ctClass);
         ctClass.addField(loggerField);
     }
+
+    /*private void addProfilingFields(CtClass ctClass) throws CannotCompileException {
+        try {
+            CtField existingCounterField = ctClass.getField("pCounter");
+            CtField existingTotalExecTimeField = ctClass.getField("pTotalExecTime");
+            if (existingCounterField != null && existingTotalExecTimeField != null) {
+                // Logger field already exists in the class
+                return;
+            }
+        } catch (NotFoundException ignored) {
+            // logger field isn't found
+        }
+
+        CtField counterField = CtField.make("private long counter = 0L;", ctClass);
+        ctClass.addField(counterField);
+
+        CtField totalExecTimeField = CtField.make("private long totalExecTimeField = 0L;", ctClass);
+        ctClass.addField(totalExecTimeField);
+    }*/
 }

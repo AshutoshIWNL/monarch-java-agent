@@ -7,7 +7,8 @@
 	"ClassA::getAr@ENTRY::ARGS",
 	"ClassA::getAr@ENTRY::STACK",
 	"ClassA::getAr@EXIT::STACK",
-	"ClassA::getAr@EXIT::RET"
+	"ClassA::getAr@EXIT::RET",
+    "ClassB::delayed@PROFILE"
   ],
   "printClassLoaderTrace": true,
   "printJVMSystemProperties": true,

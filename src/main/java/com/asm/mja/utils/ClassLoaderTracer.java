@@ -24,9 +24,9 @@ public class ClassLoaderTracer {
      * @return A string containing information about the loaded class.
      */
     public static String printClassInfo(String className, ClassLoader loader, ProtectionDomain protectionDomain) {
-        return "\nClass: " + className + "\n" +
-                printClassLoaderHierarchy(loader) + "\n" +
-                printLoadedFrom(protectionDomain);
+        return "\n{\n\tClass: " + className + "\n\t" +
+                printClassLoaderHierarchy(loader) + "\n\t" +
+                printLoadedFrom(protectionDomain) + "\n}";
     }
 
     /**
