@@ -1,20 +1,32 @@
-# Monarch Java Agent
+# Monarch-Java-Agent
 
-The Monarch Java Agent is a lightweight and flexible tool designed to provide runtime instrumentation and monitoring capabilities for Java applications. With Monarch, you can easily inject custom behavior into your Java applications without modifying the source code, enabling a wide range of use cases such as performance profiling, logging, debugging, and security enhancement.
+Monarch-Java-Agent is a powerful Java agent for method monitoring and analysis. It offers various features to track method execution time, print stack traces, log method arguments and return values, capture heap dumps, and gather JVM-related information.
 
-## Key Features
+## Features
 
-- **Dynamic Instrumentation**: Inject custom behavior into Java applications at runtime without modifying the source code, enabling on-the-fly instrumentation for performance optimization, debugging, and monitoring purposes.
-- **Configurable Logging**: Configure logging behavior dynamically using a flexible configuration file format, allowing you to fine-tune logging levels, log destinations, and log formats based on your application's requirements.
-- **Exception Handling**: Monitor and handle exceptions gracefully with built-in exception handling mechanisms, providing insights into application failures and facilitating troubleshooting and debugging.
-- **Flexible Configuration**: Customize the behavior of the Monarch Java Agent using a user-friendly configuration file format, allowing you to tailor the agent's functionality to suit your specific use cases and requirements.
-- **Dynamic Attach and Detach**: Attach and detach the Monarch Java Agent to running Java processes dynamically, enabling seamless integration with existing applications without requiring restarts or downtime.
+- **Method Execution Time**: Print the time taken for a method's execution.
+- **Stack Trace Printing**: Print the stack trace when a certain method is invoked.
+- **Argument Logging**: Log the arguments provided to a method.
+- **Return Value Logging**: Log the return value of a method.
+- **Heap Dump Capture**: Take a heap dump when a method is invoked or exits.
+- **System Flags Printing**: Print system flags of the target application.
+- **JVM Options Printing**: Print JVM options of the target application.
+- **JVM Heap Usage Details**: Print JVM heap usage details of the target application.
 
-## Getting Started
+## Usage
 
-To get started with the Monarch Java Agent, follow these steps:
+To use Monarch-Java-Agent, follow these steps:
 
-1. **Download**: Download the latest release of the Monarch Java Agent from the releases page on GitHub.
-2. **Installation**: Install the Monarch Java Agent by including it in the Java command line options using the `-javaagent` flag.
-3. **Configuration**: Customize the behavior of the Monarch Java Agent by editing the configuration file according to your requirements.
-4. **Runtime Instrumentation**: Inject custom behavior into your Java applications dynamically using the Monarch Java Agent, and monitor application performance, debug issues, and enhance security in real-time.
+1. Build the agent JAR file.
+2. Attach the agent to your Java application using the `-javaagent` option.
+3. Specify the configuration file and other options as needed.
+
+Example command to attach the agent:
+
+```bash 
+java -javaagent:/path/to/monarch-java-agent.jar=configFile=/path/to/config.json,agentLogFileDir=/path/to/log/dir,agentLogLevel=DEBUG YourMainClass
+```
+
+## Configuration
+
+You can find the sample configuration file under the sampleConfig directory. 
