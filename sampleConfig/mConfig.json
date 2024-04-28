@@ -3,10 +3,11 @@
   "agentFilters": [
     "ClassA::getA@ENTRY::STACK",
 	"ClassA::getA@ENTRY::ARGS",
+	"ClassA::getA@EXIT::RET",
 	"ClassA::getAr@ENTRY::ARGS",
 	"ClassA::getAr@ENTRY::STACK",
 	"ClassA::getAr@EXIT::STACK",
-	"ClassA::getAr@EXIT::ARGS"
+	"ClassA::getAr@EXIT::RET"
   ],
   "printClassLoaderTrace": true,
   "printJVMSystemProperties": true,

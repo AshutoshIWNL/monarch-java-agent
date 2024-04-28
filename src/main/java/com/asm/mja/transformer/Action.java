@@ -9,5 +9,6 @@ public enum Action {
     STACK,
     HEAP,
     ARGS,
-    ADD
+    ADD,
+    RET
 }

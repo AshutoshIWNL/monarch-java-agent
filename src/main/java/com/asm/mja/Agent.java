@@ -100,7 +100,7 @@ public class Agent {
         }
 
         List<Filter> filters = FilterParser.parseFilters(config.getAgentFilters());
-        GlobalTransformer globalTransformer = new GlobalTransformer(configFile, config, traceFileLogger, filters);
+        GlobalTransformer globalTransformer = new GlobalTransformer(config, traceFileLogger, filters);
         inst.addTransformer(globalTransformer);
         AgentLogger.info("Registered transformer - " + GlobalTransformer.class);
 

@@ -11,9 +11,9 @@ import java.io.IOException;
 import java.lang.instrument.ClassFileTransformer;
 import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * The GlobalTransformer class implements the ClassFileTransformer interface
@@ -24,23 +24,19 @@ import java.util.List;
  * @since 11-04-2024
  */
 public class GlobalTransformer implements ClassFileTransformer {
+    private final Config config;
 
-    private String configFile;
-    private Config config;
+    private final List<Filter> filters;
 
-    private List<Filter> filters;
+    private final TraceFileLogger logger;
 
-    private TraceFileLogger logger;
-
-    private HashSet<String> classesTransformed = new HashSet<>();
+    private final Set<String> classesTransformed = ConcurrentHashMap.newKeySet();
     /**
      * Constructs a GlobalTransformer with the specified configuration.
      *
-     * @param configFile The path to the configuration file.
      * @param config     The configuration object.
      */
-    public GlobalTransformer(String configFile, Config config, TraceFileLogger logger, List<Filter> filters) {
-        this.configFile = configFile;
+    public GlobalTransformer(Config config, TraceFileLogger logger, List<Filter> filters) {
         this.config = config;
         this.logger = logger;
         this.filters = filters;
@@ -98,10 +94,10 @@ public class GlobalTransformer implements ClassFileTransformer {
 
         switch (filter.getEvent()) {
             case ENTRY:
-                modifiedBytes = performEntryAction(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes, 0);
+                modifiedBytes = performEntryAction(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes);
                 break;
             case EXIT:
-                modifiedBytes = performExitAction(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes, 0);
+                modifiedBytes = performExitAction(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes);
                 break;
             case AT:
                 modifiedBytes = performAtAction(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes, filter.getLineNumber());
@@ -122,24 +118,24 @@ public class GlobalTransformer implements ClassFileTransformer {
     }
 
     private byte[] performExitAction(String methodName, Action action, ClassLoader loader,
-                                     String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes, int lineNumber) throws IOException, CannotCompileException {
+                                     String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes) throws IOException, CannotCompileException, UnsupportedActionException {
         switch (action) {
             case STACK:
-                return getStack(methodName, Event.EXIT, loader, formattedClassName, classBeingRedefined, modifiedBytes, lineNumber);
+                return getStack(methodName, Event.EXIT, loader, formattedClassName, classBeingRedefined, modifiedBytes, 0);
             case HEAP:
                 break;
-            case ARGS:
-                break;
+            case RET:
+                return getReturnValue(methodName, Event.EXIT, loader, formattedClassName, classBeingRedefined, modifiedBytes);
             case ADD:
         }
         return modifiedBytes;
     }
 
     private byte[] performEntryAction(String methodName, Action action, ClassLoader loader,
-                                      String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes, int lineNumber) throws IOException, CannotCompileException, UnsupportedActionException {
+                                      String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes) throws IOException, CannotCompileException, UnsupportedActionException {
         switch (action) {
             case STACK:
-                return getStack(methodName, Event.ENTRY, loader, formattedClassName, classBeingRedefined, modifiedBytes, lineNumber);
+                return getStack(methodName, Event.ENTRY, loader, formattedClassName, classBeingRedefined, modifiedBytes, 0);
             case HEAP:
                 break;
             case ARGS:
@@ -164,11 +160,14 @@ public class GlobalTransformer implements ClassFileTransformer {
                 }
 
                 if (parameterTypes.length == 0) {
-                    code.append("logger.trace(\"[").append(formattedClassName).append(".").append(methodName).append("] | ").append(event).append(" | ").append("ARGS | NULL\");");
+                    code.append("try {");
+                    code.append("    logger.trace(\"{").append(formattedClassName).append(".").append(methodName).append("} | ").append(event).append(" | ").append("ARGS | NULL\");");
+                    code.append("} catch (Exception e) {}");
                 } else {
-                    code.append("StringBuilder args = new StringBuilder(\"\");");
+                    code.append("try {");
+                    code.append("    StringBuilder args = new StringBuilder(\"\");");
                     for (int i = 0; i < parameterTypes.length; i++) {
-                        code.append("args.append(\" ").append(i).append("=\").append(");
+                        code.append("    args.append(\" ").append(i).append("=\").append(");
                         if (parameterTypes[i].isPrimitive()) {
                             code.append("$").append(i + 1);
                         } else {
@@ -176,7 +175,8 @@ public class GlobalTransformer implements ClassFileTransformer {
                         }
                         code.append(");");
                     }
-                    code.append("logger.trace(\"[").append(formattedClassName).append(".").append(methodName).append("] | ").append(event).append(" | ARGS | \" + args.toString());");
+                    code.append("    logger.trace(\"{").append(formattedClassName).append(".").append(methodName).append("} | ").append(event).append(" | ARGS | \" + args.toString());");
+                    code.append("} catch (Exception e) {}");
                 }
 
                 if (event.equals(Event.ENTRY)) {
@@ -189,7 +189,10 @@ public class GlobalTransformer implements ClassFileTransformer {
             }
         }
 
+        // CtClass frozen - due to  writeFile()/toClass()/toBytecode()
         modifiedBytes = ctClass.toBytecode();
+
+        // To remove from ClassPool
         ctClass.detach();
         return modifiedBytes;
     }
@@ -202,7 +205,9 @@ public class GlobalTransformer implements ClassFileTransformer {
         addLoggerField(ctClass);
         for(CtMethod method : ctClass.getDeclaredMethods()) {
             if(method.getName().equals(methodName)) {
-                String insertString = "logger.stack(\"{" + formattedClassName + "." + methodName + "} | " + event + " | " + "STACK\"" + ",new Throwable().getStackTrace());";
+                String insertString = "try { " +
+                        "logger.stack(\"{" + formattedClassName + "." + methodName + "} | " + event + " | " + "STACK\"" + ", new Throwable().getStackTrace()); " +
+                        "} catch (Exception e) {}";
                 if(event.equals(Event.ENTRY))
                     method.insertBefore(insertString);
                 else if(event.equals(Event.EXIT))
@@ -211,10 +216,77 @@ public class GlobalTransformer implements ClassFileTransformer {
                     method.insertAt(lineNumber, insertString);
             }
         }
+        // CtClass frozen - due to  writeFile()/toClass()/toBytecode()
         modifiedBytes = ctClass.toBytecode();
+
+        // To remove from ClassPool
         ctClass.detach();
         return modifiedBytes;
     }
+
+    /*
+      For ref:
+        $_ gives the return value
+        $r gives the return type
+     */
+    private byte[] getReturnValue(String methodName, Event event, ClassLoader loader, String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes) throws IOException, CannotCompileException, UnsupportedActionException {
+        ClassPool pool = ClassPool.getDefault();
+        CtClass ctClass = pool.makeClass(new java.io.ByteArrayInputStream(modifiedBytes));
+        addLoggerField(ctClass);
+
+        for (CtMethod method : ctClass.getDeclaredMethods()) {
+            if (method.getName().equals(methodName)) {
+                StringBuilder code = new StringBuilder();
+                CtClass returnType;
+                try {
+                    returnType = method.getReturnType();
+                } catch (NotFoundException e) {
+                    throw new UnsupportedActionException(e.getMessage());
+                }
+
+                if (event.equals(Event.EXIT)) {
+                    String returnVariableName;
+
+                    if (returnType.equals(CtClass.voidType)) {
+                        // For void methods, no return value to capture
+                        code.append("logger.trace(\"{").append(formattedClassName).append(".").append(methodName).append("} | ").append(event).append(" | RET | VOID\");");
+                    } else if (returnType.isPrimitive()) {
+                        // For primitive types, no need to call toString()
+                        returnVariableName = "$$_returnValue";
+                        code.append(returnType.getName()).append(" ").append(returnVariableName).append(" = ($r) $_;");
+                        code.append("try {");
+                        code.append("    logger.trace(\"{").append(formattedClassName).append(".").append(methodName).append("} | ").append(event).append(" | RET | \" + ").append(returnVariableName).append(");");
+                        code.append("} catch (Exception e) {}");
+                    } else {
+                        // For non-primitive types, check for null before calling toString()
+                        returnVariableName = "$$_returnValue";
+                        code.append(returnType.getName()).append(" ").append(returnVariableName).append(" = ($r) $_;");
+                        code.append("try {");
+                        code.append("    if (").append(returnVariableName).append(" != null) {");
+                        code.append("        logger.trace(\"{").append(formattedClassName).append(".").append(methodName).append("} | ").append(event).append(" | RET | \" + ").append(returnVariableName).append(".toString());");
+                        code.append("    } else {");
+                        code.append("        logger.trace(\"{").append(formattedClassName).append(".").append(methodName).append("} | ").append(event).append(" | RET | NULL\");");
+                        code.append("    }");
+                        code.append("} catch (Exception e) {}");
+                    }
+                } else {
+                    throw new UnsupportedActionException("Getting return value for " + event + " is not supported");
+                }
+
+                method.insertAfter(code.toString()); // Insert after to capture return value
+            }
+        }
+        // CtClass frozen - due to  writeFile()/toClass()/toBytecode()
+        modifiedBytes = ctClass.toBytecode();
+
+        // To remove from ClassPool
+        ctClass.detach();
+        return modifiedBytes;
+    }
+
+
+
+
 
     // Adding this to ensure we don't hit duplicate field issue
     private void addLoggerField(CtClass ctClass) throws CannotCompileException {
