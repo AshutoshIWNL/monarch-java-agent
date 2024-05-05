@@ -22,8 +22,11 @@ public class TraceFileLogger {
     private PrintWriter writer;
     private final Lock lock = new ReentrantLock();
 
+    public String traceDir;
+
     public void init(String location) {
         fileName = location + File.separator + LOG_FILE_NAME;
+        traceDir = location;
         try {
             writer = new PrintWriter(new FileWriter(fileName, true));
         } catch (IOException e) {

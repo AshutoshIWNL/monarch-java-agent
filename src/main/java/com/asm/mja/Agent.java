@@ -11,10 +11,12 @@ import com.asm.mja.monitor.JVMMemoryMonitor;
 import com.asm.mja.transformer.GlobalTransformer;
 import com.asm.mja.utils.BannerUtils;
 import com.asm.mja.utils.DateUtils;
+import com.asm.mja.utils.HeapDumpUtils;
 import com.asm.mja.utils.JVMUtils;
 
 import java.lang.instrument.Instrumentation;
-import java.util.List;
+import java.lang.instrument.UnmodifiableClassException;
+import java.util.*;
 
 /**
  * Monarch's Entry Class
@@ -79,6 +81,9 @@ public class Agent {
             return;
         }
 
+        // For limiting the number of heap dumps collected
+        HeapDumpUtils.setMaxHeapCount(config.getMaxHeapDumps());
+
         AgentLogger.debug("Creating TraceFileLogger instance for instrumentation logging");
 
 
@@ -99,9 +104,28 @@ public class Agent {
             startJVMMemoryMonitorThread(traceFileLogger);
         }
 
-        List<Filter> filters = FilterParser.parseFilters(config.getAgentFilters());
+        ArrayList<String> arrayList = new ArrayList<String>(config.getAgentFilters());
+        List<Filter> filters = FilterParser.parseFilters(arrayList);
         GlobalTransformer globalTransformer = new GlobalTransformer(config, traceFileLogger, filters);
-        inst.addTransformer(globalTransformer);
+
+        if (launchType.equalsIgnoreCase("attachVM")) {
+            AgentLogger.debug("Launch Type \"" + launchType + "\" detected, going to re-transform classes");
+            if (inst.isRetransformClassesSupported()) {
+                Class<?>[] classesToInstrument = filterClasses(inst.getAllLoadedClasses(), filters);
+                inst.addTransformer(globalTransformer, Boolean.TRUE);
+                try {
+                    AgentLogger.debug("Re-transforming classes: " + Arrays.toString(classesToInstrument));
+                    inst.retransformClasses(classesToInstrument);
+                } catch (Exception e) {
+                    AgentLogger.error("Error re-transforming classes: " + e.getMessage());
+                }
+            } else {
+                AgentLogger.error("Re-transformation not supported by this JVM");
+            }
+        } else {
+            AgentLogger.debug("Launch Type \"" + launchType + "\" detected, going to transform classes");
+            inst.addTransformer(globalTransformer, Boolean.FALSE);
+        }
         AgentLogger.info("Registered transformer - " + GlobalTransformer.class);
 
         AgentLogger.debug("Setting up shutdown hook to close resources");
@@ -114,6 +138,22 @@ public class Agent {
 
 
         AgentLogger.deinit();
+    }
+
+    private static Class<?>[] filterClasses(Class<?>[] allLoadedClasses, List<Filter> filters) {
+        Set<String> classNamesToInstrument = new HashSet<>();
+        for (Filter filter : filters) {
+            classNamesToInstrument.add(filter.getClassName());
+        }
+
+        List<Class<?>> filteredClasses = new ArrayList<>();
+        for (Class<?> clazz : allLoadedClasses) {
+            String className = clazz.getName();
+            if (classNamesToInstrument.contains(className)) {
+                filteredClasses.add(clazz);
+            }
+        }
+        return filteredClasses.toArray(new Class[0]);
     }
 
     /**

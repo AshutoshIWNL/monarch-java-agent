@@ -24,13 +24,13 @@ import java.util.concurrent.ConcurrentHashMap;
  * @since 11-04-2024
  */
 public class GlobalTransformer implements ClassFileTransformer {
+
+    private static final int MAX_HEAP_COUNT = 3;
     private final Config config;
-
     private final List<Filter> filters;
-
     private final TraceFileLogger logger;
-
     private final Set<String> classesTransformed = ConcurrentHashMap.newKeySet();
+
     /**
      * Constructs a GlobalTransformer with the specified configuration.
      *
@@ -112,14 +112,14 @@ public class GlobalTransformer implements ClassFileTransformer {
                                     String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes, int lineNumber) throws IOException, CannotCompileException {
         ClassPool pool = ClassPool.getDefault();
         CtClass ctClass = pool.makeClass(new java.io.ByteArrayInputStream(modifiedBytes));
-        addLoggerField(ctClass);
+        //addLoggerField(ctClass);
         for(CtMethod method : ctClass.getDeclaredMethods()) {
             if(method.getName().equals(methodName)) {
                 // Declaring startTime as local variable to pass it to insertAfter (it won't work without this)
                 method.addLocalVariable("startTime", CtClass.longType);
-                method.insertBefore(" try { startTime = System.nanoTime(); } catch(Exception e){}");
+                method.insertBefore("try { startTime = System.nanoTime(); } catch(Exception e){}");
 
-                method.insertAfter("try {" +
+                method.insertAfter("com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance(); try {" +
                         "    long endTime = System.nanoTime();" +
                         "    final long executionTime = (endTime - startTime) / 1000000;" +
                         "    logger.trace(\"{" + formattedClassName + "." + methodName + "} | PROFILE | Execution time: \" + executionTime + \"ms\");" +
@@ -141,7 +141,7 @@ public class GlobalTransformer implements ClassFileTransformer {
             case STACK:
                 return getStack(methodName, Event.AT, loader, formattedClassName, classBeingRedefined, modifiedBytes, lineNumber);
             case HEAP:
-                break;
+                return getHeap(methodName, Event.AT, loader, formattedClassName, classBeingRedefined, modifiedBytes, lineNumber);
             case ADD:
         }
         return modifiedBytes;
@@ -153,7 +153,7 @@ public class GlobalTransformer implements ClassFileTransformer {
             case STACK:
                 return getStack(methodName, Event.EXIT, loader, formattedClassName, classBeingRedefined, modifiedBytes, 0);
             case HEAP:
-                break;
+                return getHeap(methodName, Event.EXIT, loader, formattedClassName, classBeingRedefined, modifiedBytes, 0);
             case RET:
                 return getReturnValue(methodName, Event.EXIT, loader, formattedClassName, classBeingRedefined, modifiedBytes);
             case ADD:
@@ -167,7 +167,7 @@ public class GlobalTransformer implements ClassFileTransformer {
             case STACK:
                 return getStack(methodName, Event.ENTRY, loader, formattedClassName, classBeingRedefined, modifiedBytes, 0);
             case HEAP:
-                break;
+                return getHeap(methodName, Event.ENTRY, loader, formattedClassName, classBeingRedefined, modifiedBytes, 0);
             case ARGS:
                 return getArgs(methodName, Event.ENTRY, loader, formattedClassName, classBeingRedefined, modifiedBytes);
             case ADD:
@@ -179,7 +179,7 @@ public class GlobalTransformer implements ClassFileTransformer {
                            Class<?> classBeingRedefined, byte[] modifiedBytes) throws IOException, CannotCompileException, UnsupportedActionException {
         ClassPool pool = ClassPool.getDefault();
         CtClass ctClass = pool.makeClass(new java.io.ByteArrayInputStream(modifiedBytes));
-        addLoggerField(ctClass);
+        //addLoggerField(ctClass);
 
         for (CtMethod method : ctClass.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
@@ -191,10 +191,12 @@ public class GlobalTransformer implements ClassFileTransformer {
                 }
 
                 if (parameterTypes.length == 0) {
+                    code.append("com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance();");
                     code.append("try {");
                     code.append("    logger.trace(\"{").append(formattedClassName).append(".").append(methodName).append("} | ").append(event).append(" | ").append("ARGS | NULL\");");
                     code.append("} catch (Exception e) {}");
                 } else {
+                    code.append("com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance();");
                     code.append("try {");
                     code.append("    StringBuilder args = new StringBuilder(\"\");");
                     for (int i = 0; i < parameterTypes.length; i++) {
@@ -233,15 +235,42 @@ public class GlobalTransformer implements ClassFileTransformer {
                             String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes, int lineNumber) throws IOException, CannotCompileException {
         ClassPool pool = ClassPool.getDefault();
         CtClass ctClass = pool.makeClass(new java.io.ByteArrayInputStream(modifiedBytes));
-        addLoggerField(ctClass);
+        //addLoggerField(ctClass);
         for(CtMethod method : ctClass.getDeclaredMethods()) {
             if(method.getName().equals(methodName)) {
-                String insertString = "try { " +
+                String insertString = "com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance(); try { " +
                         "logger.stack(\"{" + formattedClassName + "." + methodName + "} | " + event + " | " + "STACK\"" + ", new Throwable().getStackTrace()); " +
                         "} catch (Exception e) {}";
                 if(event.equals(Event.ENTRY))
                     method.insertBefore(insertString);
                 else if(event.equals(Event.EXIT))
+                    method.insertAfter(insertString);
+                else
+                    method.insertAt(lineNumber, insertString);
+            }
+        }
+        // CtClass frozen - due to  writeFile()/toClass()/toBytecode()
+        modifiedBytes = ctClass.toBytecode();
+
+        // To remove from ClassPool
+        ctClass.detach();
+        return modifiedBytes;
+    }
+
+    private byte[] getHeap(String methodName, Event event, ClassLoader loader,
+                           String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes, int lineNumber) throws IOException, CannotCompileException {
+        ClassPool pool = ClassPool.getDefault();
+        CtClass ctClass = pool.makeClass(new java.io.ByteArrayInputStream(modifiedBytes));
+        //addLoggerField(ctClass);
+        for (CtMethod method : ctClass.getDeclaredMethods()) {
+            if (method.getName().equals(methodName)) {
+                String insertString = "com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance(); try { " +
+                        "com.asm.mja.utils.HeapDumpUtils.collectHeap();" +
+                        "logger.trace(\"{" + formattedClassName + "." + methodName + "} | " + event + " | " + "HEAP\"" + "); " +
+                        "} catch (Exception e) {}";
+                if (event.equals(Event.ENTRY))
+                    method.insertBefore(insertString);
+                else if (event.equals(Event.EXIT))
                     method.insertAfter(insertString);
                 else
                     method.insertAt(lineNumber, insertString);
@@ -264,7 +293,7 @@ public class GlobalTransformer implements ClassFileTransformer {
                                   String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes) throws IOException, CannotCompileException, UnsupportedActionException {
         ClassPool pool = ClassPool.getDefault();
         CtClass ctClass = pool.makeClass(new java.io.ByteArrayInputStream(modifiedBytes));
-        addLoggerField(ctClass);
+        //addLoggerField(ctClass);
 
         for (CtMethod method : ctClass.getDeclaredMethods()) {
             if (method.getName().equals(methodName)) {
@@ -281,11 +310,13 @@ public class GlobalTransformer implements ClassFileTransformer {
 
                     if (returnType.equals(CtClass.voidType)) {
                         // For void methods, no return value to capture
+                        code.append("com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance();");
                         code.append("logger.trace(\"{").append(formattedClassName).append(".").append(methodName).append("} | ").append(event).append(" | RET | VOID\");");
                     } else if (returnType.isPrimitive()) {
                         // For primitive types, no need to call toString()
                         returnVariableName = "$$_returnValue";
                         code.append(returnType.getName()).append(" ").append(returnVariableName).append(" = ($r) $_;");
+                        code.append("com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance();");
                         code.append("try {");
                         code.append("    logger.trace(\"{").append(formattedClassName).append(".").append(methodName).append("} | ").append(event).append(" | RET | \" + ").append(returnVariableName).append(");");
                         code.append("} catch (Exception e) {}");
@@ -293,6 +324,7 @@ public class GlobalTransformer implements ClassFileTransformer {
                         // For non-primitive types, check for null before calling toString()
                         returnVariableName = "$$_returnValue";
                         code.append(returnType.getName()).append(" ").append(returnVariableName).append(" = ($r) $_;");
+                        code.append("com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance();");
                         code.append("try {");
                         code.append("    if (").append(returnVariableName).append(" != null) {");
                         code.append("        logger.trace(\"{").append(formattedClassName).append(".").append(methodName).append("} | ").append(event).append(" | RET | \" + ").append(returnVariableName).append(".toString());");
@@ -316,11 +348,9 @@ public class GlobalTransformer implements ClassFileTransformer {
         return modifiedBytes;
     }
 
-
-
-
-
     // Adding this to ensure we don't hit duplicate field issue
+    /*
+    -----Won't be using this anymore as re-transform doesn't support class schema changes : field addition is a schema change. -----
     private void addLoggerField(CtClass ctClass) throws CannotCompileException {
         try {
             CtField existingField = ctClass.getField("logger");
@@ -334,24 +364,5 @@ public class GlobalTransformer implements ClassFileTransformer {
 
         CtField loggerField = CtField.make("private static final com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance();", ctClass);
         ctClass.addField(loggerField);
-    }
-
-    /*private void addProfilingFields(CtClass ctClass) throws CannotCompileException {
-        try {
-            CtField existingCounterField = ctClass.getField("pCounter");
-            CtField existingTotalExecTimeField = ctClass.getField("pTotalExecTime");
-            if (existingCounterField != null && existingTotalExecTimeField != null) {
-                // Logger field already exists in the class
-                return;
-            }
-        } catch (NotFoundException ignored) {
-            // logger field isn't found
-        }
-
-        CtField counterField = CtField.make("private long counter = 0L;", ctClass);
-        ctClass.addField(counterField);
-
-        CtField totalExecTimeField = CtField.make("private long totalExecTimeField = 0L;", ctClass);
-        ctClass.addField(totalExecTimeField);
     }*/
 }

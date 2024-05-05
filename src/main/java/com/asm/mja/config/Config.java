@@ -1,6 +1,6 @@
 package com.asm.mja.config;
 
-import java.util.List;
+import java.util.HashSet;
 
 /**
  * @author ashut
@@ -9,11 +9,13 @@ import java.util.List;
 
 public class Config {
     private String traceFileLocation;
-    private List<String> agentFilters;
+    private HashSet<String> agentFilters;
     private boolean printClassLoaderTrace;
     private boolean printJVMHeapUsage;
     private boolean printJVMSystemProperties;
     private boolean printEnvironmentVariables;
+
+    private int maxHeapDumps;
 
     public String getTraceFileLocation() {
         return traceFileLocation;
@@ -23,11 +25,11 @@ public class Config {
         this.traceFileLocation = traceFileLocation;
     }
 
-    public List<String> getAgentFilters() {
+    public HashSet<String> getAgentFilters() {
         return agentFilters;
     }
 
-    public void setAgentFilters(List<String> agentFilters) {
+    public void setAgentFilters(HashSet<String> agentFilters) {
         this.agentFilters = agentFilters;
     }
 
@@ -63,6 +65,14 @@ public class Config {
         this.printEnvironmentVariables = printEnvironmentVariables;
     }
 
+    public int getMaxHeapDumps() {
+        return maxHeapDumps;
+    }
+
+    public void setMaxHeapDumps(int maxHeapDumps) {
+        this.maxHeapDumps = maxHeapDumps;
+    }
+
     @Override
     public String toString() {
         return "Config{" +
@@ -72,6 +82,7 @@ public class Config {
                 ", printJVMHeapUsage=" + printJVMHeapUsage +
                 ", printJVMSystemProperties=" + printJVMSystemProperties +
                 ", printEnvironmentVariables=" + printEnvironmentVariables +
+                ", maxHeapDumps=" + maxHeapDumps +
                 '}';
     }
 }

@@ -8,10 +8,12 @@
 	"ClassA::getAr@ENTRY::STACK",
 	"ClassA::getAr@EXIT::STACK",
 	"ClassA::getAr@EXIT::RET",
-    "ClassB::delayed@PROFILE"
+    "ClassB::delayed@PROFILE",
+	"ClassB::delayed@ENTRY::HEAP"
   ],
   "printClassLoaderTrace": true,
   "printJVMSystemProperties": true,
   "printEnvironmentVariables" : true,
-  "printJVMHeapUsage": true
+  "printJVMHeapUsage": true,
+  "maxHeapDumps": 3
 }

@@ -32,6 +32,6 @@ public class ConfigValidator {
             AgentLogger.error("Filters are missing or empty");
             return false;
         }
-        return true;
+        return config.getMaxHeapDumps() >= 0;
     }
 }

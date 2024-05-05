@@ -21,7 +21,11 @@
               <transformers>
                 <transformer>
                   <manifestEntries>
+                    <Built-By>Ashutosh</Built-By>
                     <Premain-Class>com.asm.mja.Agent</Premain-Class>
+                    <Agent-Class>com.asm.mja.Agent</Agent-Class>
+                    <Can-Retransform-Classes>true</Can-Retransform-Classes>
+                    <Can-Redefine-Classes>true</Can-Redefine-Classes>
                   </manifestEntries>
                 </transformer>
               </transformers>
