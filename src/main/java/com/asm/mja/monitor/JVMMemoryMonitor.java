@@ -15,6 +15,8 @@ public class JVMMemoryMonitor implements Runnable {
     private TraceFileLogger logger;
     private Thread thread = null;
 
+    private static final double MEMORY_THRESHOLD_PERCENT = 0.9;
+
     private static JVMMemoryMonitor instance = null;
 
     private JVMMemoryMonitor() {
@@ -42,7 +44,10 @@ public class JVMMemoryMonitor implements Runnable {
                 long committed = memoryMXBean.getHeapMemoryUsage().getCommitted() / (1024 * 1024);
                 String memoryString = "{USED: " + used + "MB | COMMITTED: " + committed + "MB | MAX: " + max + "MB}";
                 logger.trace(memoryString);
-                Thread.sleep(5000l);
+                long threshold = (long) (max * MEMORY_THRESHOLD_PERCENT);
+                if(used > threshold)
+                    logger.warn("Memory usage exceeds 90% of max heap");
+                Thread.sleep(5000L);
             } catch (InterruptedException e) {
                 break;
             }

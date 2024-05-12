@@ -48,10 +48,10 @@ java -javaagent:/path/to/monarch-java-agent.jar=configFile=/path/to/config.json,
 
 Example command run:
 ```bash 
-C:\Users\ashut\Documents\Personal Projects\monarch-java-agent\attachScript> .\monarchAgentStart.bat
-Enter path to the agent JAR file: C:\Users\ashut\Documents\Personal Projects\monarch-java-agent\target\monarch-java-agent-1.0-SNAPSHOT.jar
-Enter path to the agent config file: C:\Users\ashut\Documents\Personal Projects\monarch-java-agent\sampleConfig\mConfig.json
-Enter arguments to pass to the agent: agentLogFileDir=C:\Users\ashut\Documents\Personal Projects\manualTesting,agentLogLevel=DEBUG
+C:\Users\ashut\monarch-java-agent\attachScript> .\monarchAgentStart.bat
+Enter path to the agent JAR file: C:\Users\ashut\monarch-java-agent\target\monarch-java-agent-1.0-SNAPSHOT.jar
+Enter path to the agent config file: C:\Users\ashut\monarch-java-agent\sampleConfig\mConfig.json
+Enter arguments to pass to the agent: agentLogFileDir=C:\Users\ashut\manualTesting,agentLogLevel=DEBUG
 Enter PID of the target JVM (press Enter to use current JVM): 24300
 Agent attached successfully to PID 24300
 ```
@@ -62,7 +62,7 @@ Below is a sample configuration JSON that you can use with Monarch-Java-Agent:
 
 ```json
 {
-  "traceFileLocation": "C:\\Users\\ashut\\Documents\\Personal Projects\\manualTesting",
+  "traceFileLocation": "C:\\TraceDumps",
   "agentFilters": [
     "ClassA::getA@ENTRY::STACK",
     "ClassA::getA@ENTRY::ARGS",
@@ -102,5 +102,5 @@ Where:
 - `<ACTION>`: Action to be performed. Possible values are:
     - STACK: Print stack trace.
     - HEAP: Capture heap dump.
-    - ARGS: Log method arguments.s
+    - ARGS: Log method arguments.
     - RET: Log method return value.

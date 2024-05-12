@@ -73,6 +73,18 @@ public class TraceFileLogger {
         writeLog(logMessage.toString());
     }
 
+    public void warn(String message) {
+        if (writer == null) {
+            throw new IllegalStateException("TraceFileLogger has not been initialized. Call init() first.");
+        }
+        StringBuilder logMessage = new StringBuilder();
+        logMessage.append(DateUtils.getFormattedTimestamp()).append(" ");
+        logMessage.append("[WARN] ");
+        logMessage.append("[").append(Thread.currentThread().getName()).append("] ");
+        logMessage.append(message);
+        writeLog(logMessage.toString());
+    }
+
     public void stack(String message, StackTraceElement[] stackTraceElements) {
         if (writer == null) {
             throw new IllegalStateException("TraceFileLogger has not been initialized. Call init() first.");
