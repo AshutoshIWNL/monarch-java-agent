@@ -9,7 +9,10 @@
 	"ClassA::getAr@EXIT::STACK",
 	"ClassA::getAr@EXIT::RET",
     "ClassB::delayed@PROFILE",
-	"ClassB::delayed@ENTRY::HEAP"
+	"ClassB::delayed@ENTRY::HEAP",
+    "ClassB::delayed@ENTRY::ADD::[System.out.println(20);]",
+    "ClassA::getAr@ENTRY::ADD::[System.out.println(this.getClass().getName());]",
+    "ClassA::getAr@AT(11)::ADD::[System.out.println(499);]"
   ],
   "printClassLoaderTrace": true,
   "printJVMSystemProperties": true,

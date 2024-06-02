@@ -14,14 +14,20 @@ public class Filter {
     private Event event;
     private Action action;
 
+    private String customCode;
     private int lineNumber;
 
     public Filter(String className, String methodName, Event event, Action action, int lineNumber) {
+        this(className, methodName, event, action, null, lineNumber);
+    }
+
+    public Filter(String className, String methodName, Event event, Action action, String customCode, int lineNumber) {
         this.className = className;
         this.methodName = methodName;
         this.event = event;
         this.action = action;
         this.lineNumber = lineNumber;
+        this.customCode = customCode;
     }
 
     public String getClassName() {
@@ -62,5 +68,13 @@ public class Filter {
 
     public void setLineNumber(int lineNumber) {
         this.lineNumber = lineNumber;
+    }
+
+    public String getCustomCode() {
+        return customCode;
+    }
+
+    public void setCustomCode(String customCode) {
+        this.customCode = customCode;
     }
 }

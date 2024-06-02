@@ -39,7 +39,16 @@ public class FilterParser {
                         }
                         Action action = Action.valueOf(parts[3]);
 
-                        return new Filter(className, methodName, event, action, lineNumber);
+                        String customCode = null;
+                        if (action == Action.ADD && parts.length > 4) {
+                            Pattern pattern = Pattern.compile("\\[([^]]+)\\]");
+                            Matcher matcher = pattern.matcher(parts[4]);
+                            if (matcher.find()) {
+                                customCode = matcher.group(1);
+                            }
+                        }
+
+                        return new Filter(className, methodName, event, action, customCode, lineNumber);
                     })
                     .collect(Collectors.toList());
     }

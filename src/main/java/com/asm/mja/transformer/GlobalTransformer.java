@@ -94,13 +94,13 @@ public class GlobalTransformer implements ClassFileTransformer {
 
         switch (filter.getEvent()) {
             case ENTRY:
-                modifiedBytes = performEntryAction(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes);
+                modifiedBytes = performEntryAction(filter.getMethodName(), filter.getAction(), filter.getCustomCode(), loader, formattedClassName, classBeingRedefined, modifiedBytes);
                 break;
             case EXIT:
-                modifiedBytes = performExitAction(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes);
+                modifiedBytes = performExitAction(filter.getMethodName(), filter.getAction(), filter.getCustomCode(), loader, formattedClassName, classBeingRedefined, modifiedBytes);
                 break;
             case AT:
-                modifiedBytes = performAtAction(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes, filter.getLineNumber());
+                modifiedBytes = performAtAction(filter.getMethodName(), filter.getAction(), filter.getCustomCode(), loader, formattedClassName, classBeingRedefined, modifiedBytes, filter.getLineNumber());
                 break;
             case PROFILE:
                 modifiedBytes = performProfiling(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes, filter.getLineNumber());
@@ -135,7 +135,7 @@ public class GlobalTransformer implements ClassFileTransformer {
         return modifiedBytes;
     }
 
-    private byte[] performAtAction(String methodName, Action action, ClassLoader loader,
+    private byte[] performAtAction(String methodName, Action action, String customCode, ClassLoader loader,
                                    String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes, int lineNumber) throws IOException, CannotCompileException {
         switch (action) {
             case STACK:
@@ -143,11 +143,12 @@ public class GlobalTransformer implements ClassFileTransformer {
             case HEAP:
                 return getHeap(methodName, Event.AT, loader, formattedClassName, classBeingRedefined, modifiedBytes, lineNumber);
             case ADD:
+                return addCustomCode(customCode, methodName, Event.AT, loader, formattedClassName, classBeingRedefined, modifiedBytes, lineNumber);
         }
         return modifiedBytes;
     }
 
-    private byte[] performExitAction(String methodName, Action action, ClassLoader loader,
+    private byte[] performExitAction(String methodName, Action action, String customCode, ClassLoader loader,
                                      String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes) throws IOException, CannotCompileException, UnsupportedActionException {
         switch (action) {
             case STACK:
@@ -157,11 +158,12 @@ public class GlobalTransformer implements ClassFileTransformer {
             case RET:
                 return getReturnValue(methodName, Event.EXIT, loader, formattedClassName, classBeingRedefined, modifiedBytes);
             case ADD:
+                return addCustomCode(customCode, methodName, Event.EXIT, loader, formattedClassName, classBeingRedefined, modifiedBytes, 0);
         }
         return modifiedBytes;
     }
 
-    private byte[] performEntryAction(String methodName, Action action, ClassLoader loader,
+    private byte[] performEntryAction(String methodName, Action action, String customCode, ClassLoader loader,
                                       String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes) throws IOException, CannotCompileException, UnsupportedActionException {
         switch (action) {
             case STACK:
@@ -171,6 +173,7 @@ public class GlobalTransformer implements ClassFileTransformer {
             case ARGS:
                 return getArgs(methodName, Event.ENTRY, loader, formattedClassName, classBeingRedefined, modifiedBytes);
             case ADD:
+                return addCustomCode(customCode, methodName, Event.ENTRY, loader, formattedClassName, classBeingRedefined, modifiedBytes, 0);
         }
         return modifiedBytes;
     }
@@ -348,21 +351,30 @@ public class GlobalTransformer implements ClassFileTransformer {
         return modifiedBytes;
     }
 
-    // Adding this to ensure we don't hit duplicate field issue
-    /*
-    -----Won't be using this anymore as re-transform doesn't support class schema changes : field addition is a schema change. -----
-    private void addLoggerField(CtClass ctClass) throws CannotCompileException {
-        try {
-            CtField existingField = ctClass.getField("logger");
-            if (existingField != null) {
-                // Logger field already exists in the class
-                return;
-            }
-        } catch (NotFoundException ignored) {
-            // logger field isn't found
-        }
+    private byte[] addCustomCode(String customCode, String methodName, Event event, ClassLoader loader,
+                                 String formattedClassName, Class<?> classBeingRedefined, byte[] modifiedBytes, int lineNumber) throws IOException, CannotCompileException {
+        ClassPool pool = ClassPool.getDefault();
+        CtClass ctClass = pool.makeClass(new java.io.ByteArrayInputStream(modifiedBytes));
 
-        CtField loggerField = CtField.make("private static final com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance();", ctClass);
-        ctClass.addField(loggerField);
-    }*/
+        for (CtMethod method : ctClass.getDeclaredMethods()) {
+            if (method.getName().equals(methodName)) {
+                String safeCustomCode = "try { " + customCode + " } catch (Exception e) { " +
+                        "com.asm.mja.logging.TraceFileLogger logger = com.asm.mja.logging.TraceFileLogger.getInstance();" +
+                        "logger.error(\"Custom code threw an exception in " + formattedClassName + "." + methodName + ": \" + e.getMessage());" +
+                        "}";
+                if(event.equals(Event.ENTRY))
+                    method.insertBefore(safeCustomCode);
+                else if(event.equals(Event.AT))
+                    method.insertAt(lineNumber, safeCustomCode);
+                else
+                    method.insertAfter(safeCustomCode);
+            }
+        }
+        // CtClass frozen - due to  writeFile()/toClass()/toBytecode()
+        modifiedBytes = ctClass.toBytecode();
+
+        // To remove from ClassPool
+        ctClass.detach();
+        return modifiedBytes;
+    }
 }
