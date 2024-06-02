@@ -8,6 +8,7 @@ Monarch-Java-Agent is a powerful Java agent for method monitoring and analysis. 
 - **Stack Trace Printing**: Print the stack trace when a certain method is invoked.
 - **Argument Logging**: Log the arguments provided to a method.
 - **Return Value Logging**: Log the return value of a method.
+- **Custom code addition**: Add custom code to a method.
 - **Heap Dump Capture**: Take a heap dump when a method is invoked or exits.
 - **System Flags Printing**: Print system flags of the target application.
 - **JVM Options Printing**: Print JVM options of the target application.
@@ -72,7 +73,10 @@ Below is a sample configuration JSON that you can use with Monarch-Java-Agent:
     "ClassA::getAr@EXIT::STACK",
     "ClassA::getAr@EXIT::RET",
     "ClassB::delayed@PROFILE",
-    "ClassB::delayed@ENTRY::HEAP"
+    "ClassB::delayed@ENTRY::HEAP",
+    "ClassB::delayed@ENTRY::ADD::[System.out.println(20);]",
+    "ClassA::getAr@ENTRY::ADD::[System.out.println(this.getClass().getName());]",
+    "ClassA::getAr@AT(11)::ADD::[System.out.println(499);]"
   ],
   "printClassLoaderTrace": true,
   "printJVMSystemProperties": true,
@@ -104,3 +108,4 @@ Where:
     - HEAP: Capture heap dump.
     - ARGS: Log method arguments.
     - RET: Log method return value.
+    - ADD: Add custom code.
