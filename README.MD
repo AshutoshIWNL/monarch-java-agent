@@ -63,20 +63,23 @@ Below is a sample configuration JSON that you can use with Monarch-Java-Agent:
 
 ```json
 {
+  "shouldInstrument": true,
+  "configRefreshInterval": 15,
   "traceFileLocation": "C:\\TraceDumps",
   "agentFilters": [
-    "ClassA::getA@ENTRY::STACK",
-    "ClassA::getA@ENTRY::ARGS",
-    "ClassA::getA@EXIT::RET",
-    "ClassA::getAr@ENTRY::ARGS",
-    "ClassA::getAr@ENTRY::STACK",
-    "ClassA::getAr@EXIT::STACK",
-    "ClassA::getAr@EXIT::RET",
-    "ClassB::delayed@PROFILE",
-    "ClassB::delayed@ENTRY::HEAP",
-    "ClassB::delayed@ENTRY::ADD::[System.out.println(20);]",
-    "ClassA::getAr@ENTRY::ADD::[System.out.println(this.getClass().getName());]",
-    "ClassA::getAr@AT(11)::ADD::[System.out.println(499);]"
+      "ClassA::methodA@ENTRY::STACK",
+      "ClassA::methodA@ENTRY::ARGS",
+      "ClassA::methodA@EXIT::RET",
+      "ClassA::methodB@ENTRY::ARGS",
+      "ClassA::methodB@ENTRY::STACK",
+      "ClassA::methodB@EXIT::STACK",
+      "ClassA::methodB@EXIT::RET",
+      "ClassB::methodC@PROFILE",
+      "ClassB::methodC@ENTRY::HEAP",
+      "ClassB::methodC@ENTRY::ADD::[System.out.println(20);]",
+      "ClassA::methodA@ENTRY::ADD::[System.out.println(this.getClass().getName());]",
+      "ClassA::methodA@AT(11)::ADD::[System.out.println(499);]",
+      "ClassA::methodA@AT(11)::ADD::[System.out.println(499 + \",\" + \"Ashutosh\");]"
   ],
   "printClassLoaderTrace": true,
   "printJVMSystemProperties": true,
