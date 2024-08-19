@@ -1,6 +1,7 @@
 package com.asm.mja.config;
 
 import com.asm.mja.logging.AgentLogger;
+import com.asm.mja.logging.TraceFileLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import java.io.File;
@@ -33,12 +34,22 @@ public class ConfigParser {
             File configFileObj = new File(configFile);
             config = om.readValue(configFileObj, Config.class);
         } catch (IOException e) {
-            AgentLogger.error(e.getMessage());
-            AgentLogger.dumpException(e);
+            AgentLogger.error(e.getMessage(), e);
             throw new RuntimeException("Config file parsing failed");
         }
         AgentLogger.debug("Config file parsed and config object built");
         AgentLogger.debug(config.toString());
+        return config;
+    }
+
+    public static Config parse(String configFile, TraceFileLogger logger) throws IOException {
+        logger.trace("Parsing config file - " + configFile);
+        Config config = null;
+        ObjectMapper om = new ObjectMapper();
+        File configFileObj = new File(configFile);
+        config = om.readValue(configFileObj, Config.class);
+        logger.trace("Config file parsed and config object built");
+        logger.trace(config.toString());
         return config;
     }
 }

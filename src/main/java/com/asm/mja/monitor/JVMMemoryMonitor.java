@@ -47,7 +47,7 @@ public class JVMMemoryMonitor implements Runnable {
                 long threshold = (long) (max * MEMORY_THRESHOLD_PERCENT);
                 if(used > threshold)
                     logger.warn("Memory usage exceeds 90% of max heap");
-                Thread.sleep(5000L);
+                Thread.sleep(5 * 1000L);
             } catch (InterruptedException e) {
                 break;
             }
@@ -65,6 +65,11 @@ public class JVMMemoryMonitor implements Runnable {
         if(thread != null) {
             logger.trace("Shutting down JVM memory monitor");
             thread.interrupt();
+            thread = null;
         }
+    }
+
+    public boolean isDown() {
+        return thread == null;
     }
 }

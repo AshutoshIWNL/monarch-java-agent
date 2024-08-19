@@ -80,6 +80,10 @@ public class AgentLogger {
     public static void error(String message) {
         log(message, LogLevel.ERROR);
     }
+    public static void error(String message, Exception e) {
+        log(message, LogLevel.ERROR);
+        dumpException(e);
+    }
 
     /**
      * Closes the log file writer.

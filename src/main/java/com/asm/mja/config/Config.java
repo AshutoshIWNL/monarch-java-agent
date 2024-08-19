@@ -17,6 +17,26 @@ public class Config {
 
     private int maxHeapDumps;
 
+    private boolean shouldInstrument;
+
+    private int configRefreshInterval;
+
+    public int getConfigRefreshInterval() {
+        return configRefreshInterval;
+    }
+
+    public void setConfigRefreshInterval(int configRefreshInterval) {
+        this.configRefreshInterval = configRefreshInterval;
+    }
+
+    public boolean isShouldInstrument() {
+        return shouldInstrument;
+    }
+
+    public void setShouldInstrument(boolean shouldInstrument) {
+        this.shouldInstrument = shouldInstrument;
+    }
+
     public String getTraceFileLocation() {
         return traceFileLocation;
     }

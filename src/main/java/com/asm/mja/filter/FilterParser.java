@@ -14,6 +14,9 @@ import java.util.stream.Collectors;
  */
 
 public class FilterParser {
+
+    private static final Pattern pattern = Pattern.compile("\\((\\d+)\\)");
+    private static final Pattern addPattern = Pattern.compile("\\[([^]]+)\\]");
     public static List<Filter> parseFilters(List<String> filters) {
         return filters.stream()
                     .map(filter -> {
@@ -26,7 +29,6 @@ public class FilterParser {
                         int lineNumber = 0;
                         if(eventString.startsWith("AT")) {
                             event = Event.AT;
-                            Pattern pattern = Pattern.compile("\\((\\d+)\\)");
                             Matcher matcher = pattern.matcher(eventString);
                             if (matcher.find()) {
                                 lineNumber = Integer.parseInt(matcher.group(1));
@@ -41,8 +43,7 @@ public class FilterParser {
 
                         String customCode = null;
                         if (action == Action.ADD && parts.length > 4) {
-                            Pattern pattern = Pattern.compile("\\[([^]]+)\\]");
-                            Matcher matcher = pattern.matcher(parts[4]);
+                            Matcher matcher = addPattern.matcher(parts[4]);
                             if (matcher.find()) {
                                 customCode = matcher.group(1);
                             }

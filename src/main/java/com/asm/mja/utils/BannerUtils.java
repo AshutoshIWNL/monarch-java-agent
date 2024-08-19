@@ -21,18 +21,18 @@ public class BannerUtils {
         StringBuilder banner = new StringBuilder();
         banner.append("  ");
         for (int i = 0; i < length + 2; i++) {
-            banner.append("_");
+            banner.append('_');
         }
         banner.append("\n");
         banner.append(" |");
         for (int i = 0; i < length + 2; i++) {
-            banner.append(" ");
+            banner.append(' ');
         }
         banner.append("|\n");
         banner.append(" | ").append(title).append(" |\n");
         banner.append(" |");
         for (int i = 0; i < length + 2; i++) {
-            banner.append("_");
+            banner.append('_');
         }
         banner.append("|\n");
 

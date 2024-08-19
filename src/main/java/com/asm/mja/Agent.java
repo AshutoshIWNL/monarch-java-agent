@@ -9,24 +9,26 @@ import com.asm.mja.logging.AgentLogger;
 import com.asm.mja.logging.TraceFileLogger;
 import com.asm.mja.monitor.JVMMemoryMonitor;
 import com.asm.mja.transformer.GlobalTransformer;
-import com.asm.mja.utils.BannerUtils;
-import com.asm.mja.utils.DateUtils;
-import com.asm.mja.utils.HeapDumpUtils;
-import com.asm.mja.utils.JVMUtils;
+import com.asm.mja.utils.*;
 
+import java.io.File;
 import java.lang.instrument.Instrumentation;
 import java.lang.instrument.UnmodifiableClassException;
 import java.util.*;
 
 /**
  * Monarch's Entry Class
+ *
  * @author ashut
  * @since 11-04-2024
  */
 public class Agent {
 
     private final static String AGENT_NAME = "Monarch";
-    private final static String VERSION = "1.0";
+
+    private final static String JAVA_AGENT_MODE = "javaagent";
+    private final static String ATTACH_VM_MODE = "attachVM";
+    private final static String VERSION = "2.0";
 
     /**
      * Entry point for premain. Sets up the logger and starts instrumenting.
@@ -36,7 +38,7 @@ public class Agent {
      */
     public static void premain(String agentArgs, Instrumentation inst) {
         AgentConfigurator.setupLogger(agentArgs);
-        instrument(agentArgs, inst, "javaagent");
+        instrument(agentArgs, inst, JAVA_AGENT_MODE);
     }
 
     /**
@@ -47,7 +49,7 @@ public class Agent {
      */
     public static void agentmain(String agentArgs, Instrumentation inst) {
         AgentConfigurator.setupLogger(agentArgs);
-        instrument(agentArgs, inst, "attachVM");
+        instrument(agentArgs, inst, ATTACH_VM_MODE);
     }
 
     /**
@@ -63,8 +65,8 @@ public class Agent {
         String configFile = null;
         try {
             configFile = AgentConfigurator.fetchConfigFile(agentArgs);;
-        } catch (RuntimeException re) {
-            AgentLogger.error("Exiting" + AGENT_NAME + " Java Agent due to exception - " + re.getMessage());
+        } catch (IllegalArgumentException re) {
+            AgentLogger.error("Exiting" + AGENT_NAME + " Java Agent due to exception - " + re.getMessage(),re);
             return;
         }
 
@@ -72,7 +74,7 @@ public class Agent {
         try {
             config = ConfigParser.parse(configFile);
         } catch (RuntimeException re) {
-            AgentLogger.error("Exiting" + AGENT_NAME + " Java Agent due to exception - " + re.getMessage());
+            AgentLogger.error("Exiting" + AGENT_NAME + " Java Agent due to exception - " + re.getMessage(), re);
             return;
         }
 
@@ -104,20 +106,20 @@ public class Agent {
             startJVMMemoryMonitorThread(traceFileLogger);
         }
 
-        ArrayList<String> arrayList = new ArrayList<String>(config.getAgentFilters());
-        List<Filter> filters = FilterParser.parseFilters(arrayList);
+        List<String> filtersString = new ArrayList<String>(config.getAgentFilters());
+        List<Filter> filters = FilterParser.parseFilters(filtersString);
         GlobalTransformer globalTransformer = new GlobalTransformer(config, traceFileLogger, filters);
 
         if (launchType.equalsIgnoreCase("attachVM")) {
             AgentLogger.debug("Launch Type \"" + launchType + "\" detected, going to re-transform classes");
             if (inst.isRetransformClassesSupported()) {
-                Class<?>[] classesToInstrument = filterClasses(inst.getAllLoadedClasses(), filters);
+                Class<?>[] classesToInstrument = ClassFilterUtils.filterClasses(inst.getAllLoadedClasses(), filters);
                 inst.addTransformer(globalTransformer, Boolean.TRUE);
                 try {
                     AgentLogger.debug("Re-transforming classes: " + Arrays.toString(classesToInstrument));
                     inst.retransformClasses(classesToInstrument);
-                } catch (Exception e) {
-                    AgentLogger.error("Error re-transforming classes: " + e.getMessage());
+                } catch (UnmodifiableClassException e) {
+                    AgentLogger.error("Error re-transforming classes: " + e.getMessage(), e);
                 }
             } else {
                 AgentLogger.error("Re-transformation not supported by this JVM");
@@ -128,9 +130,13 @@ public class Agent {
         }
         AgentLogger.info("Registered transformer - " + GlobalTransformer.class);
 
+        startInstrumentationManager(inst, configFile, globalTransformer, traceFileLogger, filters, config.getConfigRefreshInterval());
+
         AgentLogger.debug("Setting up shutdown hook to close resources");
         Thread shutdownHook = new Thread(() -> {
-            JVMMemoryMonitor.getInstance().shutdown();
+            JVMMemoryMonitor jvmMemoryMonitor = JVMMemoryMonitor.getInstance();
+            if(!jvmMemoryMonitor.isDown())
+                JVMMemoryMonitor.getInstance().shutdown();
             traceFileLogger.close();
         });
         shutdownHook.setName("monarch-shutdown-hook");
@@ -140,21 +146,6 @@ public class Agent {
         AgentLogger.deinit();
     }
 
-    private static Class<?>[] filterClasses(Class<?>[] allLoadedClasses, List<Filter> filters) {
-        Set<String> classNamesToInstrument = new HashSet<>();
-        for (Filter filter : filters) {
-            classNamesToInstrument.add(filter.getClassName());
-        }
-
-        List<Class<?>> filteredClasses = new ArrayList<>();
-        for (Class<?> clazz : allLoadedClasses) {
-            String className = clazz.getName();
-            if (classNamesToInstrument.contains(className)) {
-                filteredClasses.add(clazz);
-            }
-        }
-        return filteredClasses.toArray(new Class[0]);
-    }
 
     /**
      * Starts the JVM Memory Monitor thread
@@ -166,6 +157,31 @@ public class Agent {
         jvmMemoryMonitor.setLogger(traceFileLogger);
         jvmMemoryMonitor.execute();
     }
+
+    /**
+     * Initializes and starts the Instrumentation Manager with the provided parameters.
+     *
+     * @param inst                The Instrumentation instance used to perform bytecode manipulation.
+     * @param configFile          The path to the configuration file for the Instrumentation Manager.
+     * @param globalTransformer   The GlobalTransformer instance that will manage bytecode transformations.
+     * @param traceFileLogger     The logger responsible for tracing file operations and instrumentation logs.
+     * @param filters             The list of filters to apply during instrumentation.
+     * @param configRefreshInterval The interval (in milliseconds) at which the configuration file is checked for updates.
+     */
+    public static void startInstrumentationManager(Instrumentation inst, String configFile, GlobalTransformer globalTransformer,
+                                                   TraceFileLogger traceFileLogger, List<Filter> filters, long configRefreshInterval) {
+        InstrumentationManager instrumentationManager = InstrumentationManager.getInstance();
+        instrumentationManager.setInstrumentation(inst);
+        instrumentationManager.setConfigFilePath(configFile);
+        instrumentationManager.setJvmMemoryMonitor(JVMMemoryMonitor.getInstance());
+        instrumentationManager.setTransformer(globalTransformer);
+        instrumentationManager.setCurrentFilters(filters);
+        instrumentationManager.setLastModified(new File(configFile).lastModified());
+        instrumentationManager.setLogger(traceFileLogger);
+        instrumentationManager.setConfigRefreshInterval(configRefreshInterval);
+        instrumentationManager.execute();
+    }
+
 
     /**
      * Prints the startup information.

@@ -34,6 +34,10 @@ public class TraceFileLogger {
         }
     }
 
+    public String getTraceDir() {
+        return traceDir;
+    }
+
     private TraceFileLogger() {
 
     }
@@ -54,9 +58,9 @@ public class TraceFileLogger {
             throw new IllegalStateException("TraceFileLogger has not been initialized. Call init() first.");
         }
         StringBuilder logMessage = new StringBuilder();
-        logMessage.append(DateUtils.getFormattedTimestamp()).append(" ");
+        logMessage.append(DateUtils.getFormattedTimestamp()).append(' ');
         logMessage.append("[TRACE] ");
-        logMessage.append("[").append(Thread.currentThread().getName()).append("] ");
+        logMessage.append('[').append(Thread.currentThread().getName()).append("] ");
         logMessage.append(message);
         writeLog(logMessage.toString());
     }
@@ -66,11 +70,24 @@ public class TraceFileLogger {
             throw new IllegalStateException("TraceFileLogger has not been initialized. Call init() first.");
         }
         StringBuilder logMessage = new StringBuilder();
-        logMessage.append(DateUtils.getFormattedTimestamp()).append(" ");
+        logMessage.append(DateUtils.getFormattedTimestamp()).append(' ');
         logMessage.append("[ERROR] ");
-        logMessage.append("[").append(Thread.currentThread().getName()).append("] ");
+        logMessage.append('[').append(Thread.currentThread().getName()).append("] ");
         logMessage.append(message);
         writeLog(logMessage.toString());
+    }
+
+    public void error(String message, Exception e) {
+        if (writer == null) {
+            throw new IllegalStateException("TraceFileLogger has not been initialized. Call init() first.");
+        }
+        StringBuilder logMessage = new StringBuilder();
+        logMessage.append(DateUtils.getFormattedTimestamp()).append(' ');
+        logMessage.append("[ERROR] ");
+        logMessage.append('[').append(Thread.currentThread().getName()).append("] ");
+        logMessage.append(message);
+        writeLog(logMessage.toString());
+        exception(e);
     }
 
     public void warn(String message) {
@@ -78,9 +95,9 @@ public class TraceFileLogger {
             throw new IllegalStateException("TraceFileLogger has not been initialized. Call init() first.");
         }
         StringBuilder logMessage = new StringBuilder();
-        logMessage.append(DateUtils.getFormattedTimestamp()).append(" ");
+        logMessage.append(DateUtils.getFormattedTimestamp()).append(' ');
         logMessage.append("[WARN] ");
-        logMessage.append("[").append(Thread.currentThread().getName()).append("] ");
+        logMessage.append('[').append(Thread.currentThread().getName()).append("] ");
         logMessage.append(message);
         writeLog(logMessage.toString());
     }
@@ -90,14 +107,14 @@ public class TraceFileLogger {
             throw new IllegalStateException("TraceFileLogger has not been initialized. Call init() first.");
         }
         StringBuilder logMessage = new StringBuilder();
-        logMessage.append(DateUtils.getFormattedTimestamp()).append(" ");
+        logMessage.append(DateUtils.getFormattedTimestamp()).append(' ');
         logMessage.append("[TRACE] ");
-        logMessage.append("[").append(Thread.currentThread().getName()).append("] ");
+        logMessage.append('[').append(Thread.currentThread().getName()).append("] ");
         logMessage.append(message).append("\n");
         for (StackTraceElement element : stackTraceElements) {
             if(element.toString().startsWith("java.lang.Thread.getStackTrace"))
                 continue;
-            logMessage.append("\tat ").append(element.toString()).append("\n");
+            logMessage.append("\tat ").append(element.toString()).append('\n');
         }
         writeLog(logMessage.toString());
     }
@@ -107,9 +124,9 @@ public class TraceFileLogger {
             throw new IllegalStateException("TraceFileLogger has not been initialized. Call init() first.");
         }
         StringBuilder logMessage = new StringBuilder();
-        logMessage.append(DateUtils.getFormattedTimestamp()).append(" ");
+        logMessage.append(DateUtils.getFormattedTimestamp()).append(' ');
         logMessage.append("[EXCEPTION] ");
-        logMessage.append("[").append(Thread.currentThread().getName()).append("] ");
+        logMessage.append('[').append(Thread.currentThread().getName()).append("] ");
         logMessage.append(e.getMessage());
         for (StackTraceElement element : e.getStackTrace()) {
             logMessage.append("\tat ").append(element.toString()).append("\n");

@@ -54,9 +54,9 @@ public class JVMUtils {
         for (String key : properties.stringPropertyNames()) {
             String value = properties.getProperty(key);
             if(counter-- != 1)
-                systemProps.append(key).append("=").append(value).append("\n");
+                systemProps.append(key).append('=').append(value).append('\n');
             else
-                systemProps.append(key).append("=").append(value);
+                systemProps.append(key).append('=').append(value);
         }
         systemProps.append("\n**************************************\n");
         return systemProps.toString();
@@ -68,7 +68,7 @@ public class JVMUtils {
         List<String> jvmArguments = ManagementFactory.getRuntimeMXBean().getInputArguments();
 
         for (String argument : jvmArguments) {
-            commandLine.append(argument).append(";");
+            commandLine.append(argument).append(';');
         }
         return commandLine.toString();
     }
