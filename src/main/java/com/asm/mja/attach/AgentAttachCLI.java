@@ -31,12 +31,14 @@ public class AgentAttachCLI {
             String agentFilePath = cmd.getOptionValue("agentJar");
             String configFile = cmd.getOptionValue("configFile");
             String agentArgs = cmd.getOptionValue("args");
-            String targetPID = cmd.getOptionValue("pid", getTargetPID());
+            String targetPID = cmd.getOptionValue("pid");
             attachAgent(agentFilePath, configFile, agentArgs, targetPID);
-        } catch (Exception e) {
+        } catch (ParseException e) {
             System.err.println("Error parsing command-line arguments: " + e.getMessage());
             HelpFormatter formatter = new HelpFormatter();
             formatter.printHelp("java -jar AgentAttacherCLI.jar", options);
+        } catch (Exception e) {
+            System.err.println("Error while attaching agent to the target JVM" + e.getMessage());
         }
     }
 
@@ -57,13 +59,4 @@ public class AgentAttachCLI {
         System.out.println("Agent attached successfully to PID " + targetPID);
     }
 
-    /**
-     * Retrieves the PID of the current JVM process.
-     *
-     * @return The PID of the current JVM process.
-     */
-    private static String getTargetPID() {
-        String name = ManagementFactory.getRuntimeMXBean().getName();
-        return name.split("@")[0];
-    }
 }
