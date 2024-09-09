@@ -88,28 +88,27 @@ public class InstrumentationManager implements Runnable {
 
     @Override
     public void run() {
-        while(true) {
+        while (true) {
             File file = new File(configFilePath);
-            Config config = null;
-            if(file.lastModified() != lastModified) {
+            long currentLastModified = file.lastModified();
+
+            if (currentLastModified != lastModified) {
+                Config config = null;
                 try {
                     config = ConfigParser.parse(configFilePath, logger);
-                    //Handling of change in refresh interval time for config file
                     configRefreshInterval = config.getConfigRefreshInterval();
-                } catch (IOException e) {
-                    logger.error("Configuration file parsing failed, please verify if it is a valid JSON file after you changes", e);
-                    continue;
-                }
-                if (file.lastModified() != lastModified) {
                     logger.trace("Configuration file has been modified, re-parsing it");
                     handleConfigurationChange(config);
-                    lastModified = file.lastModified();
+                    lastModified = currentLastModified;
+                } catch (IOException e) {
+                    logger.error("Configuration file parsing failed, please verify if it is a valid JSON file after your changes", e);
                 }
             }
+
             try {
                 Thread.sleep(configRefreshInterval);
             } catch (InterruptedException e) {
-                Thread.currentThread().interrupt(); // Restore interrupted status
+                Thread.currentThread().interrupt();
                 logger.trace("Instrumentation Manager thread interrupted");
                 break;
             }
@@ -117,6 +116,11 @@ public class InstrumentationManager implements Runnable {
     }
 
     private void handleConfigurationChange(Config config) {
+        if (!isBackupDirAvailable()) {
+            logger.warn("No backup available, won't proceed with reverting instrumentations");
+            return;
+        }
+
         List<Filter> filters = new ArrayList<>(currentFilters);
         resetTransformerState();
         revertInstrumentation(filters);
@@ -126,11 +130,16 @@ public class InstrumentationManager implements Runnable {
             shutdown();
             return;
         }
-
+        transformer.resetConfig(config);
         List<String> filtersString = new ArrayList<>(config.getAgentFilters());
         List<Filter> newFilters = FilterParser.parseFilters(filtersString);
         addNewInstrumentation(newFilters);
         currentFilters = newFilters;
+    }
+
+    private boolean isBackupDirAvailable() {
+        String backupDir = logger.getTraceDir() + File.separator + "backup";
+        return new File(backupDir).exists();
     }
 
     private void resetTransformerState() {
@@ -171,9 +180,9 @@ public class InstrumentationManager implements Runnable {
     }
 
     private void loadOriginalByteCode(String className) {
-        String backupLocation = logger.getTraceDir() + File.separator + "backup" + File.separator + className.substring(className.lastIndexOf(".") + 1) + ".class";
+        String backupClassPath =  constructBackupClassPath(className);
         try {
-            byte[] originalBytecode = Files.readAllBytes(Paths.get(backupLocation));
+            byte[] originalBytecode = Files.readAllBytes(Paths.get(backupClassPath));
             bytecodeCache.put(className, originalBytecode);
             instrumentation.redefineClasses(new ClassDefinition(Class.forName(className), originalBytecode));
         } catch (IOException | UnmodifiableClassException | ClassNotFoundException e) {
@@ -181,6 +190,9 @@ public class InstrumentationManager implements Runnable {
         }
     }
 
+    private String constructBackupClassPath(String className) {
+        return logger.getTraceDir() + File.separator + "backup" + File.separator + className.substring(className.lastIndexOf(".") + 1) + ".class";
+    }
 
     public void execute() {
         logger.trace("Starting Monarch Instrumentation Manager");
@@ -197,5 +209,6 @@ public class InstrumentationManager implements Runnable {
             logger.trace("Shutting down Monarch Instrumentation Manager");
             thread.interrupt();
         }
+        logger.close();
     }
 }

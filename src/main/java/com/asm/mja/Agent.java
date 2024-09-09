@@ -25,7 +25,6 @@ import java.util.*;
 public class Agent {
 
     private final static String AGENT_NAME = "Monarch";
-
     private final static String JAVA_AGENT_MODE = "javaagent";
     private final static String ATTACH_VM_MODE = "attachVM";
     private final static String VERSION = "2.0";
@@ -74,7 +73,7 @@ public class Agent {
         try {
             config = ConfigParser.parse(configFile);
         } catch (RuntimeException re) {
-            AgentLogger.error("Exiting" + AGENT_NAME + " Java Agent due to exception - " + re.getMessage(), re);
+            AgentLogger.error(String.format("Exiting %s Java Agent due to exception - %s", AGENT_NAME, re.getMessage()), re);
             return;
         }
 
@@ -83,11 +82,14 @@ public class Agent {
             return;
         }
 
-        // For limiting the number of heap dumps collected
+        if(!config.isShouldInstrument()) {
+            AgentLogger.warning("ShouldInstrument is set to false, exiting!");
+            return;
+        }
+
         HeapDumpUtils.setMaxHeapCount(config.getMaxHeapDumps());
 
         AgentLogger.debug("Creating TraceFileLogger instance for instrumentation logging");
-
 
         TraceFileLogger traceFileLogger = AgentConfigurator.setupTraceFileLogger(config.getTraceFileLocation());
 
@@ -110,7 +112,7 @@ public class Agent {
         List<Filter> filters = FilterParser.parseFilters(filtersString);
         GlobalTransformer globalTransformer = new GlobalTransformer(config, traceFileLogger, filters);
 
-        if (launchType.equalsIgnoreCase("attachVM")) {
+        if (launchType.equalsIgnoreCase(ATTACH_VM_MODE)) {
             AgentLogger.debug("Launch Type \"" + launchType + "\" detected, going to re-transform classes");
             if (inst.isRetransformClassesSupported()) {
                 Class<?>[] classesToInstrument = ClassFilterUtils.filterClasses(inst.getAllLoadedClasses(), filters);
@@ -168,7 +170,7 @@ public class Agent {
      * @param filters             The list of filters to apply during instrumentation.
      * @param configRefreshInterval The interval (in milliseconds) at which the configuration file is checked for updates.
      */
-    public static void startInstrumentationManager(Instrumentation inst, String configFile, GlobalTransformer globalTransformer,
+    private static void startInstrumentationManager(Instrumentation inst, String configFile, GlobalTransformer globalTransformer,
                                                    TraceFileLogger traceFileLogger, List<Filter> filters, long configRefreshInterval) {
         InstrumentationManager instrumentationManager = InstrumentationManager.getInstance();
         instrumentationManager.setInstrumentation(inst);
@@ -188,7 +190,7 @@ public class Agent {
      *
      * @param agentArgs The agent arguments passed to the JVM.
      */
-    public static void printStartup(String agentArgs) {
+    private static void printStartup(String agentArgs) {
         AgentLogger.draw(BannerUtils.getBanner(AGENT_NAME + " JAVA AGENT"));
         AgentLogger.info("Starting " + AGENT_NAME + " " + VERSION + " @ " + DateUtils.getFormattedTimestamp());
         AgentLogger.info("Agent arguments - " + agentArgs);

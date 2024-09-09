@@ -17,7 +17,6 @@ import java.lang.instrument.IllegalClassFormatException;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -32,12 +31,15 @@ import java.util.concurrent.ConcurrentHashMap;
 public class GlobalTransformer implements ClassFileTransformer {
 
     private static final int MAX_HEAP_COUNT = 3;
-    private final Config config;
+    private Config config;
     private List<Filter> filters;
     private final TraceFileLogger logger;
     private Set<String> classesTransformed = ConcurrentHashMap.newKeySet();
-
     private Set<String> backupSet = ConcurrentHashMap.newKeySet();
+
+    public void resetConfig(Config config) {
+        this.config = config;
+    }
 
     /**
      * Constructs a GlobalTransformer with the specified configuration.
