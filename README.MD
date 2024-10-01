@@ -61,37 +61,34 @@ Agent attached successfully to PID 24300
 
 Below is a sample configuration JSON that you can use with Monarch-Java-Agent:
 
-```json
-{
-  "shouldInstrument": true,
-  "configRefreshInterval": 15,
-  "traceFileLocation": "C:\\TraceDumps",
-  "agentFilters": [
-      "ClassA::methodA@ENTRY::STACK",
-      "ClassA::methodA@ENTRY::ARGS",
-      "ClassA::methodA@EXIT::RET",
-      "ClassA::methodB@ENTRY::ARGS",
-      "ClassA::methodB@ENTRY::STACK",
-      "ClassA::methodB@EXIT::STACK",
-      "ClassA::methodB@EXIT::RET",
-      "ClassB::methodC@PROFILE",
-      "ClassB::methodC@ENTRY::HEAP",
-      "ClassB::methodC@ENTRY::ADD::[System.out.println(20);]",
-      "ClassA::methodA@ENTRY::ADD::[System.out.println(this.getClass().getName());]",
-      "ClassA::methodA@AT(11)::ADD::[System.out.println(499);]",
-      "ClassA::methodA@AT(11)::ADD::[System.out.println(499 + \",\" + \"Ashutosh\");]"
-  ],
-  "printClassLoaderTrace": true,
-  "printJVMSystemProperties": true,
-  "printEnvironmentVariables": true,
-  "printJVMHeapUsage": true,
-  "maxHeapDumps": 3
-}
+```yaml
+shouldInstrument: true
+configRefreshInterval: 15
+traceFileLocation: C:\\TraceDumps
+agentRules:
+  - ClassA::methodA@ENTRY::STACK
+  - ClassA::methodA@ENTRY::ARGS
+  - ClassA::methodA@EXIT::RET
+  - ClassA::methodB@ENTRY::ARGS
+  - ClassA::methodB@ENTRY::STACK
+  - ClassA::methodB@EXIT::STACK
+  - ClassA::methodB@EXIT::RET
+  - ClassB::methodC@PROFILE
+  - ClassB::methodC@ENTRY::HEAP
+  - ClassB::methodC@ENTRY::ADD::[System.out.println(20);]
+  - ClassA::methodA@ENTRY::ADD::[System.out.println(this.getClass().getName());]
+  - ClassA::methodA@AT(11)::ADD::[System.out.println(499);]
+  - ClassA::methodA@AT(11)::ADD::[System.out.println(499 + "," + "Ashutosh");]
+printClassLoaderTrace: true
+printJVMSystemProperties: true
+printEnvironmentVariables: true
+printJVMHeapUsage: true
+maxHeapDumps: 3
 ```
 
-## Filter Syntax
+## Rule Syntax
 
-The filter syntax for Monarch-Java-Agent follows the format:
+The rule syntax for Monarch-Java-Agent follows the format:
 
 ```plaintext
 <FQCN>::<MethodName>@<EVENT>::<ACTION>

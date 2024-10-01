@@ -1,4 +1,4 @@
-package com.asm.mja.filter;
+package com.asm.mja.rule;
 
 import com.asm.mja.transformer.Action;
 import com.asm.mja.transformer.Event;
@@ -8,7 +8,7 @@ import com.asm.mja.transformer.Event;
  * @since 20-04-2024
  */
 
-public class Filter {
+public class Rule {
     private String className;
     private String methodName;
     private Event event;
@@ -17,11 +17,11 @@ public class Filter {
     private String customCode;
     private int lineNumber;
 
-    public Filter(String className, String methodName, Event event, Action action, int lineNumber) {
+    public Rule(String className, String methodName, Event event, Action action, int lineNumber) {
         this(className, methodName, event, action, null, lineNumber);
     }
 
-    public Filter(String className, String methodName, Event event, Action action, String customCode, int lineNumber) {
+    public Rule(String className, String methodName, Event event, Action action, String customCode, int lineNumber) {
         this.className = className;
         this.methodName = methodName;
         this.event = event;

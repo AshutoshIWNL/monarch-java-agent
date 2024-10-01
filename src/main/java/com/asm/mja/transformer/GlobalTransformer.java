@@ -4,7 +4,7 @@ import com.asm.mja.config.Config;
 import com.asm.mja.exception.BackupCreationException;
 import com.asm.mja.exception.TransformException;
 import com.asm.mja.exception.UnsupportedActionException;
-import com.asm.mja.filter.Filter;
+import com.asm.mja.rule.Rule;
 import com.asm.mja.logging.TraceFileLogger;
 import com.asm.mja.utils.ClassLoaderTracer;
 import javassist.*;
@@ -30,9 +30,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class GlobalTransformer implements ClassFileTransformer {
 
-    private static final int MAX_HEAP_COUNT = 3;
     private Config config;
-    private List<Filter> filters;
+    private List<Rule> rules;
     private final TraceFileLogger logger;
     private Set<String> classesTransformed = ConcurrentHashMap.newKeySet();
     private Set<String> backupSet = ConcurrentHashMap.newKeySet();
@@ -46,10 +45,10 @@ public class GlobalTransformer implements ClassFileTransformer {
      *
      * @param config     The configuration object.
      */
-    public GlobalTransformer(Config config, TraceFileLogger logger, List<Filter> filters) {
+    public GlobalTransformer(Config config, TraceFileLogger logger, List<Rule> rules) {
         this.config = config;
         this.logger = logger;
-        this.filters = filters;
+        this.rules = rules;
     }
 
     /**
@@ -68,16 +67,16 @@ public class GlobalTransformer implements ClassFileTransformer {
         if(config.isPrintClassLoaderTrace()) {
             logger.trace(ClassLoaderTracer.printClassInfo(className, loader, protectionDomain));
         }
-        if(filters.isEmpty())
+        if(rules.isEmpty())
             return classfileBuffer;
         String formattedClassName = className.replace("/", ".");
-        List<Filter> appropriateFilters = getAppropriateFilters(formattedClassName);
-        boolean needsInstrumentation =  !appropriateFilters.isEmpty();
+        List<Rule> appropriateRules = getAppropriateRules(formattedClassName);
+        boolean needsInstrumentation =  !appropriateRules.isEmpty();
         try {
             if(needsInstrumentation) {
                 if(!backupSet.contains(formattedClassName))
                     backupByteCode(formattedClassName, classfileBuffer, logger.getTraceDir());
-                return transformClass(loader, formattedClassName, classBeingRedefined, classfileBuffer, appropriateFilters);
+                return transformClass(loader, formattedClassName, classBeingRedefined, classfileBuffer, appropriateRules);
             }
         } catch (TransformException e) {
             logger.error("Failed to transform class " + formattedClassName, e);
@@ -87,26 +86,26 @@ public class GlobalTransformer implements ClassFileTransformer {
         return classfileBuffer;
     }
 
-    private List<Filter> getAppropriateFilters(String formattedClassName) {
-        List<Filter> filterList = new ArrayList<>();
-        for(Filter filter: filters) {
-            if(filter.getClassName().equalsIgnoreCase(formattedClassName)) {
-                filterList.add(filter);
+    private List<Rule> getAppropriateRules(String formattedClassName) {
+        List<Rule> ruleList = new ArrayList<>();
+        for(Rule rule: rules) {
+            if(rule.getClassName().equalsIgnoreCase(formattedClassName)) {
+                ruleList.add(rule);
             }
         }
-        return filterList;
+        return ruleList;
     }
 
     public void resetClassesTransformed() {
         this.classesTransformed.clear();
     }
 
-    public void resetFilters() {
-        this.filters.clear();
+    public void resetRules() {
+        this.rules.clear();
     }
 
-    public void setFilters(List<Filter> filters) {
-        this.filters = filters;
+    public void setRules(List<Rule> rules) {
+        this.rules = rules;
     }
 
     private void backupByteCode(String formattedClassName, byte[] classFileBuffer, String traceDir) throws BackupCreationException {
@@ -124,7 +123,7 @@ public class GlobalTransformer implements ClassFileTransformer {
     }
 
     private byte[] transformClass(ClassLoader loader, String formattedClassName,
-                                  Class<?> classBeingRedefined, byte[] classfileBuffer, List<Filter> filters) throws TransformException {
+                                  Class<?> classBeingRedefined, byte[] classfileBuffer, List<Rule> rules) throws TransformException {
         byte[] modifiedBytes = classfileBuffer;
         if(classesTransformed.contains(formattedClassName)) {
             logger.trace("Re-transforming class " + formattedClassName);
@@ -132,20 +131,20 @@ public class GlobalTransformer implements ClassFileTransformer {
             logger.trace("Going to transform class " + formattedClassName);
             classesTransformed.add(formattedClassName);
         }
-        for(Filter filter: filters) {
+        for(Rule rule: rules) {
             try {
-                switch (filter.getEvent()) {
+                switch (rule.getEvent()) {
                     case ENTRY:
-                        modifiedBytes = performEntryAction(filter.getMethodName(), filter.getAction(), filter.getCustomCode(), loader, formattedClassName, classBeingRedefined, modifiedBytes);
+                        modifiedBytes = performEntryAction(rule.getMethodName(), rule.getAction(), rule.getCustomCode(), loader, formattedClassName, classBeingRedefined, modifiedBytes);
                         break;
                     case EXIT:
-                        modifiedBytes = performExitAction(filter.getMethodName(), filter.getAction(), filter.getCustomCode(), loader, formattedClassName, classBeingRedefined, modifiedBytes);
+                        modifiedBytes = performExitAction(rule.getMethodName(), rule.getAction(), rule.getCustomCode(), loader, formattedClassName, classBeingRedefined, modifiedBytes);
                         break;
                     case AT:
-                        modifiedBytes = performAtAction(filter.getMethodName(), filter.getAction(), filter.getCustomCode(), loader, formattedClassName, classBeingRedefined, modifiedBytes, filter.getLineNumber());
+                        modifiedBytes = performAtAction(rule.getMethodName(), rule.getAction(), rule.getCustomCode(), loader, formattedClassName, classBeingRedefined, modifiedBytes, rule.getLineNumber());
                         break;
                     case PROFILE:
-                        modifiedBytes = performProfiling(filter.getMethodName(), filter.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes, filter.getLineNumber());
+                        modifiedBytes = performProfiling(rule.getMethodName(), rule.getAction(), loader, formattedClassName, classBeingRedefined, modifiedBytes, rule.getLineNumber());
                 }
             } catch (IOException | CannotCompileException | UnsupportedActionException e) {
                 logger.error(e.getMessage(), e);

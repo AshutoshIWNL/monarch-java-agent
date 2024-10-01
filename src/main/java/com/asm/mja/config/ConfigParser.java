@@ -3,6 +3,7 @@ package com.asm.mja.config;
 import com.asm.mja.logging.AgentLogger;
 import com.asm.mja.logging.TraceFileLogger;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -29,7 +30,7 @@ public class ConfigParser {
     public static Config parse(String configFile) {
         AgentLogger.debug("Parsing config file - " + configFile);
         Config config = null;
-        ObjectMapper om = new ObjectMapper();
+        ObjectMapper om = new ObjectMapper(new YAMLFactory());
         try {
             File configFileObj = new File(configFile);
             config = om.readValue(configFileObj, Config.class);
@@ -45,7 +46,7 @@ public class ConfigParser {
     public static Config parse(String configFile, TraceFileLogger logger) throws IOException {
         logger.trace("Parsing config file - " + configFile);
         Config config = null;
-        ObjectMapper om = new ObjectMapper();
+        ObjectMapper om = new ObjectMapper(new YAMLFactory());
         File configFileObj = new File(configFile);
         config = om.readValue(configFileObj, Config.class);
         logger.trace("Config file parsed and config object built");

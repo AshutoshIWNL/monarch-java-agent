@@ -1,6 +1,6 @@
 package com.asm.mja.utils;
 
-import com.asm.mja.filter.Filter;
+import com.asm.mja.rule.Rule;
 
 import java.util.Arrays;
 import java.util.List;
@@ -12,10 +12,10 @@ import java.util.stream.Collectors;
  * @since 15-08-2024
  */
 
-public class ClassFilterUtils {
-    public static Class<?>[] filterClasses(Class<?>[] allLoadedClasses, List<Filter> filters) {
-        Set<String> classNamesToInstrument = filters.stream()
-                .map(Filter::getClassName)
+public class ClassRuleUtils {
+    public static Class<?>[] ruleClasses(Class<?>[] allLoadedClasses, List<Rule> rules) {
+        Set<String> classNamesToInstrument = rules.stream()
+                .map(Rule::getClassName)
                 .collect(Collectors.toSet());
 
         return Arrays.stream(allLoadedClasses)

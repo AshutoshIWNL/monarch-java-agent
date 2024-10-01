@@ -9,7 +9,7 @@ import java.util.HashSet;
 
 public class Config {
     private String traceFileLocation;
-    private HashSet<String> agentFilters;
+    private HashSet<String> agentRules;
     private boolean printClassLoaderTrace;
     private boolean printJVMHeapUsage;
     private boolean printJVMSystemProperties;
@@ -45,12 +45,12 @@ public class Config {
         this.traceFileLocation = traceFileLocation;
     }
 
-    public HashSet<String> getAgentFilters() {
-        return agentFilters;
+    public HashSet<String> getAgentRules() {
+        return agentRules;
     }
 
-    public void setAgentFilters(HashSet<String> agentFilters) {
-        this.agentFilters = agentFilters;
+    public void setAgentRules(HashSet<String> agentRules) {
+        this.agentRules = agentRules;
     }
 
     public boolean isPrintClassLoaderTrace() {
@@ -97,7 +97,7 @@ public class Config {
     public String toString() {
         return "Config{" +
                 "traceFileLocation='" + traceFileLocation + '\'' +
-                ", agentFilters=" + agentFilters +
+                ", agentRules=" + agentRules +
                 ", printClassLoaderTrace=" + printClassLoaderTrace +
                 ", printJVMHeapUsage=" + printJVMHeapUsage +
                 ", printJVMSystemProperties=" + printJVMSystemProperties +

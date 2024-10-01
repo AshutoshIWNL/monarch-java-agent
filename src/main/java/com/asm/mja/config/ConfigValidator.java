@@ -28,8 +28,8 @@ public class ConfigValidator {
             return false;
         }
 
-        if (config.getAgentFilters() == null || config.getAgentFilters().size() == 0) {
-            AgentLogger.error("Filters are missing or empty");
+        if (config.getAgentRules() == null || config.getAgentRules().isEmpty()) {
+            AgentLogger.error("Rules are missing or empty");
             return false;
         }
         return config.getMaxHeapDumps() >= 0;

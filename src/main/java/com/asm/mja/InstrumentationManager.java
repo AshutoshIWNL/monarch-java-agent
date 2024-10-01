@@ -2,13 +2,13 @@ package com.asm.mja;
 
 import com.asm.mja.config.Config;
 import com.asm.mja.config.ConfigParser;
-import com.asm.mja.filter.Filter;
-import com.asm.mja.filter.FilterParser;
+import com.asm.mja.rule.Rule;
+import com.asm.mja.rule.RuleParser;
 import com.asm.mja.logging.TraceFileLogger;
 import com.asm.mja.monitor.JVMMemoryMonitor;
 import com.asm.mja.transformer.GlobalTransformer;
 import com.asm.mja.utils.ByteCodeUtils;
-import com.asm.mja.utils.ClassFilterUtils;
+import com.asm.mja.utils.ClassRuleUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -34,7 +34,7 @@ public class InstrumentationManager implements Runnable {
 
     private Instrumentation instrumentation;
 
-    private List<Filter> currentFilters;
+    private List<Rule> currentRules;
 
     private JVMMemoryMonitor jvmMemoryMonitor;
 
@@ -80,8 +80,8 @@ public class InstrumentationManager implements Runnable {
         this.jvmMemoryMonitor = jvmMemoryMonitor;
     }
 
-    public void setCurrentFilters(List<Filter> currentFilters) {
-        this.currentFilters = currentFilters;
+    public void setCurrentRules(List<Rule> currentRules) {
+        this.currentRules = currentRules;
     }
 
     public void setConfigRefreshInterval(Long configRefreshInterval) {this.configRefreshInterval = configRefreshInterval; }
@@ -121,9 +121,9 @@ public class InstrumentationManager implements Runnable {
             return;
         }
 
-        List<Filter> filters = new ArrayList<>(currentFilters);
+        List<Rule> rules = new ArrayList<>(currentRules);
         resetTransformerState();
-        revertInstrumentation(filters);
+        revertInstrumentation(rules);
 
         if (!config.isShouldInstrument()) {
             logger.trace("Going to shutdown instrumentation");
@@ -131,10 +131,10 @@ public class InstrumentationManager implements Runnable {
             return;
         }
         transformer.resetConfig(config);
-        List<String> filtersString = new ArrayList<>(config.getAgentFilters());
-        List<Filter> newFilters = FilterParser.parseFilters(filtersString);
-        addNewInstrumentation(newFilters);
-        currentFilters = newFilters;
+        List<String> rulesString = new ArrayList<>(config.getAgentRules());
+        List<Rule> newRules = RuleParser.parseRules(rulesString);
+        addNewInstrumentation(newRules);
+        currentRules = newRules;
     }
 
     private boolean isBackupDirAvailable() {
@@ -144,12 +144,12 @@ public class InstrumentationManager implements Runnable {
 
     private void resetTransformerState() {
         transformer.resetClassesTransformed();
-        transformer.resetFilters();
+        transformer.resetRules();
     }
 
-    private void addNewInstrumentation(List<Filter> newFilters) {
-        transformer.setFilters(newFilters);
-        Class<?>[] classesToInstrument = ClassFilterUtils.filterClasses(instrumentation.getAllLoadedClasses(), newFilters);
+    private void addNewInstrumentation(List<Rule> newRules) {
+        transformer.setRules(newRules);
+        Class<?>[] classesToInstrument = ClassRuleUtils.ruleClasses(instrumentation.getAllLoadedClasses(), newRules);
         for (Class<?> classz : classesToInstrument) {
             String className = classz.getName();
             try {
@@ -169,9 +169,9 @@ public class InstrumentationManager implements Runnable {
         }
     }
 
-    private void revertInstrumentation(List<Filter> currentFilters) {
-        if (currentFilters != null) {
-            Set<String> classSet = currentFilters.stream().map(Filter::getClassName).collect(Collectors.toSet());
+    private void revertInstrumentation(List<Rule> currentRules) {
+        if (currentRules != null) {
+            Set<String> classSet = currentRules.stream().map(Rule::getClassName).collect(Collectors.toSet());
             for (String cName : classSet) {
                 loadOriginalByteCode(cName);
             }

@@ -3,8 +3,8 @@ package com.asm.mja;
 import com.asm.mja.config.Config;
 import com.asm.mja.config.ConfigParser;
 import com.asm.mja.config.ConfigValidator;
-import com.asm.mja.filter.Filter;
-import com.asm.mja.filter.FilterParser;
+import com.asm.mja.rule.Rule;
+import com.asm.mja.rule.RuleParser;
 import com.asm.mja.logging.AgentLogger;
 import com.asm.mja.logging.TraceFileLogger;
 import com.asm.mja.monitor.JVMMemoryMonitor;
@@ -108,14 +108,14 @@ public class Agent {
             startJVMMemoryMonitorThread(traceFileLogger);
         }
 
-        List<String> filtersString = new ArrayList<String>(config.getAgentFilters());
-        List<Filter> filters = FilterParser.parseFilters(filtersString);
-        GlobalTransformer globalTransformer = new GlobalTransformer(config, traceFileLogger, filters);
+        List<String> rulesString = new ArrayList<String>(config.getAgentRules());
+        List<Rule> rules = RuleParser.parseRules(rulesString);
+        GlobalTransformer globalTransformer = new GlobalTransformer(config, traceFileLogger, rules);
 
         if (launchType.equalsIgnoreCase(ATTACH_VM_MODE)) {
             AgentLogger.debug("Launch Type \"" + launchType + "\" detected, going to re-transform classes");
             if (inst.isRetransformClassesSupported()) {
-                Class<?>[] classesToInstrument = ClassFilterUtils.filterClasses(inst.getAllLoadedClasses(), filters);
+                Class<?>[] classesToInstrument = ClassRuleUtils.ruleClasses(inst.getAllLoadedClasses(), rules);
                 inst.addTransformer(globalTransformer, Boolean.TRUE);
                 try {
                     AgentLogger.debug("Re-transforming classes: " + Arrays.toString(classesToInstrument));
@@ -132,7 +132,7 @@ public class Agent {
         }
         AgentLogger.info("Registered transformer - " + GlobalTransformer.class);
 
-        startInstrumentationManager(inst, configFile, globalTransformer, traceFileLogger, filters, config.getConfigRefreshInterval());
+        startInstrumentationManager(inst, configFile, globalTransformer, traceFileLogger, rules, config.getConfigRefreshInterval());
 
         AgentLogger.debug("Setting up shutdown hook to close resources");
         Thread shutdownHook = new Thread(() -> {
@@ -167,17 +167,17 @@ public class Agent {
      * @param configFile          The path to the configuration file for the Instrumentation Manager.
      * @param globalTransformer   The GlobalTransformer instance that will manage bytecode transformations.
      * @param traceFileLogger     The logger responsible for tracing file operations and instrumentation logs.
-     * @param filters             The list of filters to apply during instrumentation.
+     * @param rules             The list of rules to apply during instrumentation.
      * @param configRefreshInterval The interval (in milliseconds) at which the configuration file is checked for updates.
      */
     private static void startInstrumentationManager(Instrumentation inst, String configFile, GlobalTransformer globalTransformer,
-                                                   TraceFileLogger traceFileLogger, List<Filter> filters, long configRefreshInterval) {
+                                                   TraceFileLogger traceFileLogger, List<Rule> rules, long configRefreshInterval) {
         InstrumentationManager instrumentationManager = InstrumentationManager.getInstance();
         instrumentationManager.setInstrumentation(inst);
         instrumentationManager.setConfigFilePath(configFile);
         instrumentationManager.setJvmMemoryMonitor(JVMMemoryMonitor.getInstance());
         instrumentationManager.setTransformer(globalTransformer);
-        instrumentationManager.setCurrentFilters(filters);
+        instrumentationManager.setCurrentRules(rules);
         instrumentationManager.setLastModified(new File(configFile).lastModified());
         instrumentationManager.setLogger(traceFileLogger);
         instrumentationManager.setConfigRefreshInterval(configRefreshInterval);
