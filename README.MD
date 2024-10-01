@@ -38,7 +38,7 @@ You can attach Monarch-Java-Agent either during startup or during runtime.
 Example command to attach the agent:
 
 ```bash 
-java -javaagent:/path/to/monarch-java-agent.jar=configFile=/path/to/config.json,agentLogFileDir=/path/to/log/dir,agentLogLevel=DEBUG YourMainClass
+java -javaagent:/path/to/monarch-java-agent.jar=configFile=/path/to/config.yaml,agentLogFileDir=/path/to/log/dir,agentLogLevel=DEBUG YourMainClass
 ```
 
 **For Runtime:**
@@ -51,7 +51,7 @@ Example command run:
 ```bash 
 C:\Users\ashut\monarch-java-agent\attachScript> .\monarchAgentStart.bat
 Enter path to the agent JAR file: C:\Users\ashut\monarch-java-agent\target\monarch-java-agent-1.0-SNAPSHOT.jar
-Enter path to the agent config file: C:\Users\ashut\monarch-java-agent\sampleConfig\mConfig.json
+Enter path to the agent config file: C:\Users\ashut\monarch-java-agent\sampleConfig\mConfig.yaml
 Enter arguments to pass to the agent: agentLogFileDir=C:\Users\ashut\manualTesting,agentLogLevel=DEBUG
 Enter PID of the target JVM (press Enter to use current JVM): 24300
 Agent attached successfully to PID 24300
@@ -59,7 +59,7 @@ Agent attached successfully to PID 24300
 
 ## Configuration
 
-Below is a sample configuration JSON that you can use with Monarch-Java-Agent:
+Below is a sample configuration YAML that you can use with Monarch-Java-Agent:
 
 ```yaml
 shouldInstrument: true

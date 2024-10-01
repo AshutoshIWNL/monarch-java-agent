@@ -101,7 +101,7 @@ public class InstrumentationManager implements Runnable {
                     handleConfigurationChange(config);
                     lastModified = currentLastModified;
                 } catch (IOException e) {
-                    logger.error("Configuration file parsing failed, please verify if it is a valid JSON file after your changes", e);
+                    logger.error("Configuration file parsing failed, please verify if it is a valid YAML file after your changes", e);
                 }
             }
 
