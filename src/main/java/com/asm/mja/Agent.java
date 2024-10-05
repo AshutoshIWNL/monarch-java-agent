@@ -27,7 +27,7 @@ public class Agent {
     private final static String AGENT_NAME = "Monarch";
     private final static String JAVA_AGENT_MODE = "javaagent";
     private final static String ATTACH_VM_MODE = "attachVM";
-    private final static String VERSION = "2.0";
+    private final static String VERSION = "2.1";
 
     /**
      * Entry point for premain. Sets up the logger and starts instrumenting.

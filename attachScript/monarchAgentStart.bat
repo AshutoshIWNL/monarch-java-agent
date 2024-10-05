@@ -9,7 +9,7 @@ if "%JAVA_HOME%" == "" (
 set /p agentJar="Enter path to the agent JAR file: "
 set /p configFile="Enter path to the agent config file: "
 set /p agentArgs="Enter arguments to pass to the agent: "
-set /p pid="Enter PID of the target JVM (press Enter to use current JVM): "
+set /p pid="Enter PID of the target JVM: "
 
 if "%pid%" == "" (
     set pid=0

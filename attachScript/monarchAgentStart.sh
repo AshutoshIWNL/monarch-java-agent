@@ -9,7 +9,7 @@ fi
 read -p "Enter path to the agent JAR file: " agentJar
 read -p "Enter path to the agent config file: " configFile
 read -p "Enter arguments to pass to the agent: " agentArgs
-read -p "Enter PID of the target JVM (press Enter to use current JVM): " pid
+read -p "Enter PID of the target JVM: " pid
 
 if [ -z "$pid" ]; then
     pid=0
